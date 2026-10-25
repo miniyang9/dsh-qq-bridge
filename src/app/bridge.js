@@ -20,7 +20,9 @@ import { listStoredSessions, humanAge, defaultSessionsRoot, listKnownWorkspaces 
  */
 export function outcomeFromVote(vote) {
   const v = String(vote ?? '').trim().toLowerCase()
-  return v === '批准' || v === 'yes' || v === 'allow' || v === 'allowed' ? 'allowed' : 'rejected'
+  return v === '批准' || v === 'yes' || v === 'allow' || v === 'allowed' || v === 'allowed-once'
+    ? 'allowed-once'
+    : 'rejected'
 }
 
 /** GUI 想写结果时发现手机那票已先结算：以已生效的那票为准（不可解析时按取消）。 */
@@ -34,7 +36,7 @@ function shortOf(id) {
   return String(id ?? '').replace(/^session-/, '').slice(0, 6)
 }
 
-const OUTCOMES = new Set(['allowed', 'rejected', 'cancelled', 'unavailable'])
+const OUTCOMES = new Set(['allowed-once', 'allowed', 'rejected', 'cancelled', 'unavailable'])
 const MAX_PUSH_PER_DAY = 3
 
 /**
@@ -1274,8 +1276,7 @@ export class Bridge {
     }
     if (settled?.status !== 'resolved') return 'unavailable'
     const yes = settled.text === '批准' || settled.text === 'yes' || settled.selected?.[0] === '批准'
-    const outcome = yes ? 'allowed' : 'rejected'
-    return OUTCOMES.has(outcome) ? outcome : 'rejected'
+    return outcomeFromVote(yes ? 'yes' : 'no')
   }
 
   /**
