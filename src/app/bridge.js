@@ -382,7 +382,9 @@ export class Bridge {
         const sess = agent.session
         const before = Number(sess?.seq ?? 0)
         // 我们建的会话，第一句话顺便当标题：QQ <首行，≤20 字>
-        if (this.qqCreated?.has?.(agentId)) {
+        // 判定用"当前标题仍是 QQ"，这样重启后（内存集合为空）也能改名
+        const currentTitle = await this.#titleOf(agentId, sess).catch(() => null)
+        if (this.qqCreated?.has?.(agentId) || currentTitle === 'QQ') {
           try {
             const firstLine = String(target.meta.text).split('\n')[0].replace(/\s+/g, ' ').trim().slice(0, 20)
             if (firstLine) {
@@ -524,6 +526,27 @@ export class Bridge {
     const sc = this.getSessionController?.()
     const agents = this.getAgents?.()
     return Boolean(sc && agents)
+  }
+
+  /** 当前标题：先看会话自身的最后一个 session/title 事件，读不到再查会话库。 */
+  async #titleOf(id, session = null) {
+    try {
+      if (session && typeof session.eventAt === 'function') {
+        for (let i = Number(session.seq ?? 0) - 1; i >= 0; i -= 1) {
+          const ev = session.eventAt(i)
+          if (ev?.type === 'session/title' && typeof ev.data?.title === 'string') return ev.data.title
+        }
+      }
+    } catch {
+      /* 落到库查询 */
+    }
+    try {
+      const rows = await listStoredSessions(this.sessionsRoot, this.now())
+      const hit = rows.find((r) => String(r.id) === String(id))
+      return hit?.title ?? null
+    } catch {
+      return null
+    }
   }
 
   /** `/list`：**全部任务**（读会话库），活跃的标出来；咨询会话不列（A36）。 */
