@@ -1459,8 +1459,10 @@ export class Bridge {
     try {
       const used = this.seqByMsgId.get(msgId) ?? 0
       let res
-      // B9：QQ 被动回复窗口 60 分钟（F6）。按"被回复的那条 msg_id 的年龄"判断，
-      // 而不是按"最后一次收到消息的时间"——否则拿一个两小时前的 msg_id 还会走被动。
+      // B9：官方规则（2026-10-25 核对 bot.q.qq.com）：单聊被动回复有效期 60 分钟、
+      // 每条消息最多回复 4 次；相同 msg_id+msg_seq 重复发送会失败。这里按"被回复的
+      // 那条 msg_id 的年龄"判断窗口，而不是按"最后一次收到消息的时间"。
+      // 55 分钟 < 60 分钟是刻意留的余量；used < 4 与官方"4 次"一致。
       const arrived = msgId ? (this.msgAt?.get(String(msgId)) ?? this.lastMsgAt) : 0
       const withinWindow = arrived === 0 || this.now() - arrived < 55 * 60_000
       if (msgId && used < 4 && withinWindow) {

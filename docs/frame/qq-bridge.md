@@ -19,7 +19,7 @@
 | F3 | 审批经 `ctx.waterfall(scope, "approval/request", req, …)` 派发，默认回退 `"unavailable"`；无 answerer 时 fail-closed。 | [代码] `dsh-user-approval/lib/index.js:176`、`:26` | 已确认 |
 | F4 | 提问走 `"user-questions/request"` 作用域化 answerer 瀑布；提问可带调用方传入的 `timeout`，超时后调用仍可继续。 | [代码] `dsh-user-questions/lib/index.js:681`、`:14`、`:446` | 已确认 |
 | F5 | 进程外接入面存在（stdio JSON-RPC SDK、ACP、api-gateway），但**是否暴露审批/提问事件待验证**。 | [代码] 各包 description；`dsh-sdk-protocol/lib/index.js:88` | 待验证（不影响本期：走进程内） |
-| F6 | 官方 QQ 机器人：单聊/群聊/频道可收发；单聊主动消息 1000 条/人/天、单关系 20 条/分；**用户可关闭"允许主动发送"**；被动回复需 `msg_id`，单聊 60 分钟内有效、每条最多 4 次。 | [外部] https://bot.qq.com/wiki/develop/api-v2/server-inter/message/overview.html | 已确认 |
+| F6 | 官方 QQ 机器人（2026-10-25 核对 `bot.q.qq.com` 消息收发概述）：单聊主动消息 **1000 条/人/天**、单关系 **20 条/分**（未认证机器人另有 5/qps、30/qpm 的 Bot 维度限制）；**用户可关闭"允许主动发送"**；被动回复需 `msg_id`，单聊 **60 分钟内、每条消息最多回复 4 次**（群聊 5 分钟 / 5 次）；相同 `msg_id + msg_seq` 重复发送会失败，需递增 `msg_seq`；另有 `is_wakeup=true` 的互动召回消息（30 天内 4 个周期、每周期 1 条）；自己发出的消息 **2 分钟内可撤回**；官方来源：[消息收发概述](https://bot.q.qq.com/wiki/develop/api-v2/server-inter/message/overview.html)有效、每条最多 4 次。 | [外部] https://bot.qq.com/wiki/develop/api-v2/server-inter/message/overview.html | 已确认 |
 | F7 | 官方机器人 WebSocket 出连长连，家庭 PC 无公网 IP 可用；官方文档明示用户可直接与机器人单聊。 | [外部] 同上；getting-started.html | 已确认 |
 | F8 | 前置：开放平台注册 + 机器人创建（AppID/AppSecret，Access Token）；沙箱仅白名单；认证主体决定频控档位。 | [外部] getting-started.html §账号注册/§接入票据 + F6 | 待验证：个人主体能否开单聊、审核周期 |
 | F9 | 工作区是绿地（只有无关的 crashpad `debug.log`）。 | [代码] 目录列表 | 已确认 |
@@ -197,7 +197,7 @@
 | A5 | 非白名单身份：拒绝且响应不含任何会话内容 |
 | A6 | 同 requestId 相同内容重复 0 条；提醒另计且同实例 24h ≤3 条、带序号 |
 | A7 | 重启 PC 后 ≤5 分钟通道自动恢复 |
-| A8 | 连续 24 小时：主动消息 ≤10 条（正常日）、≤50 条（含提醒日） |
+| A8 | 连续 24 小时：主动消息 ≤10 条（正常日）、≤50 条（含提醒日）。**注意：这是本项目的自我限流，不是平台上限**；平台单聊上限为 1000 条/人/天、20 条/分（F6） |
 | A9a | 审批中止后的迟到答复：状态不变、回"已失效"、日志记录中止时刻 |
 | A9b | 提问超时后的迟到答复：不回注、回"该提问已超时结束" |
 | A10 | 用 P1 的答复在 P2 待决时重发：P2 不变，回"属于已结束的请求 #P1" |
@@ -233,7 +233,7 @@
 | Q6 | 停滞阈值 | 10 分钟首次、30 分钟升级；工具执行中豁免 |
 | Q7 | 提醒节奏（D4） | 10 分钟首次、30 分钟升级、同实例 24h ≤3 条 |
 | Q8 | 标注判据（§4.1） | 三条判据 + ≤5 条白名单；默认不标；命中标注的请求要求 `yes <id>` |
-| Q9 | 每日主动消息预算 | 正常日 ≤10、含提醒 ≤50 |
+| Q9 | 每日主动消息预算 | 正常日 ≤10、含提醒 ≤50（自设，远低于平台 1000/天） |
 | Q10 | 会话绑定 | 默认最近活跃；`/list` 只读 |
 | Q11 | 数据落盘 | `%LOCALAPPDATA%\qq-bridge\` |
 | Q12 | 开机自启 | 需要（登录时计划任务 + 托盘） |
