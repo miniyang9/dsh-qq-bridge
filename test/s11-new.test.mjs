@@ -21,7 +21,7 @@ for (let i=0;i<2;i++) await b.onEvent({ type:'C2C_MESSAGE_CREATE', data:{ id:'m'
 check(created.length === 3, '同工作区共新建 3 次', String(created.length))
 await b.onEvent({ type:'C2C_MESSAGE_CREATE', data:{ id:'m9', content:'/new 2', author:{ user_openid:'u1' } } })
 check(sent.at(-1).includes('到上限了'), '第 4 次被拒', sent.at(-1))
-const b2 = mk({ statePath: 'C:/Project/WatchDog/.tmp/t-new-RANDOM.json' })
+const b2 = mk({ statePath: shared })
 await b2.start()
 await b2.onEvent({ type:'C2C_MESSAGE_CREATE', data:{ id:'m10', content:'/new 2', author:{ user_openid:'u1' } } })
 check(sent.at(-1).includes('到上限了'), '重启后计数仍在（落盘生效）', sent.at(-1))

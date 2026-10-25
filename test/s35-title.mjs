@@ -28,8 +28,8 @@ await b.onEvent({ type: 'C2C_MESSAGE_CREATE', data: { id: 'm1', content: '/new 1
 
 const title = appended.find(([t]) => t === 'session/title')
 check('新建后写入 session/title', Boolean(title), JSON.stringify(appended))
-check('标题含工作区名', (title?.[1]?.title ?? '').includes('WatchDog'), title?.[1]?.title)
-check('标题含 QQ 前缀', (title?.[1]?.title ?? '').startsWith('QQ · '), title?.[1]?.title)
+check('标题只写 QQ（不再拼工作区）', title?.[1]?.title === 'QQ', title?.[1]?.title)
+check('标题没有多余后缀', !/·/.test(title?.[1]?.title ?? ''), title?.[1]?.title)
 check('回话仍然成功', (sent.at(-1) ?? '').includes('已在'), sent.at(-1))
 
 // append 不存在时不得搞崩流程

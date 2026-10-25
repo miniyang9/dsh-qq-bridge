@@ -69,12 +69,15 @@ check(!kept.some((e) => e.requestId === 'wp-old'), '过期记录不在文件里'
     log: { info() {}, error() {} },
   })
   await b.start()
-  await b.onEvent({ type: 'C2C_MESSAGE_CREATE', data: { id: 'm0', content: 'go', author: { user_openid: 'u1' } } })
   const p = b.handleApproval({ agent: { session: { id: 's' } }, toolName: 'fs.read', args: {} }, { timeoutMs: 2000 })
   await new Promise((r) => setTimeout(r, 10))
-  await b.onEvent({ type: 'C2C_MESSAGE_CREATE', data: { id: 'm1', content: '1', author: { user_openid: 'u1' } } })
+  // D21：裸数字不再有路由语义，必须用 /ans <id> 1
+  const wpId = b.points.list().at(-1).id
+  await b.onEvent({ type: 'C2C_MESSAGE_CREATE', data: { id: 'm1', content: `/ans ${wpId} 1`, author: { user_openid: 'u1' } } })
   await p
-  const entries = await new Audit(path.join(TMP, 'audit.jsonl')).readAll()
+  // 审计文件由 statePath 推导（state.json → state.audit.jsonl）
+  const auditPath = statePath.replace(/\.json$/, '') + '.audit.jsonl'
+  const entries = await new Audit(auditPath).readAll()
   const last = entries.at(-1)
   check(entries.length >= 1, '答复后写了审计', String(entries.length))
   check(last?.card?.text?.includes('需要你批准'), '审计里有当时的卡片原文', (last?.card?.text ?? '').slice(0, 20))

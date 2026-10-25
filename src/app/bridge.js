@@ -611,7 +611,9 @@ export class Bridge {
         return
       }
       try {
-        const created = await createFn({ cwd: target.cwd ?? this.workspaceRoot })
+        // 咨询会话跟着任务会话的工作区走（它只是替你看现场，不建新任务）
+        const createArgs = { cwd: target.cwd ?? this.workspaceRoot }
+        const created = await createFn(createArgs)
         const newId = created?.sessionId ?? created?.id ?? created?.session?.id ?? null
         const agent = newId ? await this.#waitAgent(agents, newId) : null
         if (!agent) {
@@ -735,7 +737,7 @@ export class Bridge {
   /** `/wake <序号|短id>`（D15）：把未加载的会话挂回进程。只用服务取 agent，不新建。 */
   async wakeSession(arg) {
     if (arg === null || arg === undefined || String(arg) === '') {
-      return '要唤醒哪个？参数无效：/wake <序号|短id>（先发 /list 看列表）。'
+      return '要唤醒哪个？/wake <序号|短id>（空参数无效，先发 /list 看列表）。'
     }
     const stored = await listStoredSessions(this.sessionsRoot, this.now())
     let target = null
@@ -775,7 +777,9 @@ export class Bridge {
           }
         }
       }
-      return '拿不到会话服务（这个服务没有 resolveAgent/resume），唤醒不可用。'
+      const proto = Object.getPrototypeOf(sc)
+      const available = proto === null ? [] : Object.getOwnPropertyNames(proto).filter((n) => n !== 'constructor').slice(0, 12)
+      return `唤醒失败：这个服务没有 resolveAgent/resume。可用方法：${available.join(', ')}`
     } catch (err) {
       return `唤醒失败：${err?.message ?? err}`
     }
