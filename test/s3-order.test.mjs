@@ -3,7 +3,7 @@
  *
  * 盯住今天的两个真机缺陷：
  *   1. 发 `go` 被回"没看懂"  → 裸词必须静默（它只是开窗）
- *   2. 回 `1` 之后确认消息丢失 → 确认必须先 await 送达，再 resolve 待答点
+ *   2. 回 `1` 之后确认消息丢失 → 确认必须 await 送达（顺序见文末说明：现为先结算后回执）
  */
 const failures = []
 function check(ok, label, detail = '') {
@@ -60,7 +60,9 @@ await bridge.onEvent({ type: 'C2C_MESSAGE_CREATE', data: { id: 'm3', content: '/
 const confirmIdx = order.findIndex((o) => o.startsWith('send:已收到'))
 const resolveIdx = order.indexOf('resolve')
 check(confirmIdx >= 0, '确认消息已发出', order.join(','))
-check(resolveIdx > confirmIdx, '确认在 resolve 之前发出（顺序正确）', `confirm@${confirmIdx} resolve@${resolveIdx}`)
+// 顺序调整（R4/N2）：先结算再回执，避免"已被另一端处理"的票仍回"已收到"并写第二条审计。
+// 原顺序（先回执再结算）会与审计守恒冲突；确认仍保证被 await 送达，不会丢。
+check(resolveIdx >= 0 && confirmIdx >= 0, '确认与结算都发生（顺序改为先结算后回执）', `confirm@${confirmIdx} resolve@${resolveIdx}`)
 
 const outcome = await approval
 check(outcome === 'allowed', '审批结果为 allowed', outcome)

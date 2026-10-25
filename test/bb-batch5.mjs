@@ -130,12 +130,16 @@ const agent = (sid, extra = {}) => ({ id: sid, session: { id: sid, seq: 0, event
   b.boundAgent = null
   const before = sent.length
   await inbound('/say session-hhhh7777 hi-A', 'm1')
+  const r1 = sent.at(-1) ?? ''
+  // 空闲且已加载 → 进入确认（D20：给了 id 就不要求先 /use）
+  check('BB-70', r1.includes('将要发送'), '空闲会话进入确认', r1.split('\n')[0])
+  // 清掉待答点，避免影响下一条
+  for (const p of b.points.list()) if (p.status === 'open') b.points.drop(p.id, 'test-cleanup')
   await inbound('/say session-iiii8888 hi-B', 'm2')
-  const replies = sent.slice(before)
-  check('BB-70', replies.length === 2, '2/2 有回话', String(replies.length))
-  // D20/B5 之后：给了显式 id 就不再要求"先绑定"，所以"空闲已加载"的会话会进入确认而不是被拒
-  check('BB-70', /正在跑|运行中/.test(replies[0]) || /先 \/wake/.test(replies[0]), '运行中的目标被拒或提示等待', replies[0].slice(0, 24))
-  check('BB-70', replies.length === 2 && (replies[1].includes('将要发送') || /未绑定|先 \/wake/.test(replies[1])), '第二条要么进入确认要么明确拒绝', replies[1].slice(0, 24))
+  const r2 = sent.at(-1) ?? ''
+  check('BB-70', /正在跑|运行中/.test(r2), '运行中的目标被拒绝', r2.split('\n')[0])
+  check('BB-70', sent.length - before === 2, '2/2 都有回话', String(sent.length - before))
+  check('BB-70', !r2.includes('将要发送'), '运行中的目标没有进入确认')
 }
 
 // ---------- BB-71：标注请求拒绝 /ans 1，只认 /yes ----------

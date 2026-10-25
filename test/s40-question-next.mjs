@@ -26,7 +26,7 @@ const question = (agentId = 's') => ({
   const b = mk(); await b.start()
   const p = b.handleQuestion(question(), { next: () => new Promise(() => {}) })
   await new Promise((r) => setTimeout(r, 20))
-  check('传 next 时 handleQuestion 不抛错', true)
+  check('传 next 时 handleQuestion 不抛错', p instanceof Promise && typeof p.then === 'function')
   const wp = b.points.list().at(-1)
   await b.onEvent({ type: 'C2C_MESSAGE_CREATE', data: { id: 'm1', content: `/ans ${wp.id} 1`, author: { user_openid: 'u1' } } })
   const ans = await p

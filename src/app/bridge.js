@@ -440,8 +440,13 @@ export class Bridge {
         : { text: label, by: data.author?.user_openid }
     }
 
-    await this.send(`已收到：${target.id} → ${payload.selected?.[0] ?? payload.text ?? payload.custom}`, data.id)
+    // N2：结算成功才算"采纳"。已被另一端处理的请求不再回"已收到"，也不写第二条审计
     const res = this.points.answer(target.id, payload)
+    if (!res || res.ok !== true) {
+      await this.send(`${target.id} 已被处理（${res?.reason ?? '已完成'}），这次答复没有采纳。`, data.id)
+      return
+    }
+    await this.send(`已收到：${target.id} → ${payload.selected?.[0] ?? payload.text ?? payload.custom}`, data.id)
     await this.audit.append({
       // B7：能对齐 DSH 日志时优先用 callId，同时保留 wp-N 便于本地追溯
       requestId: String(target.meta?.callId ?? target.id),
