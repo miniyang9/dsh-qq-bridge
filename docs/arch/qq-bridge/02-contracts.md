@@ -19,7 +19,7 @@
 | 契约 | 形状 | 唯一写者 | 约定（不变量 · 封闭集合 · 错误码） | 版本 | 冻结理由 |
 |---|---|---|---|---|---|
 | `Event` | 已落地 → `src/core/events.js:1`（seam 侧 `approvalEvent`/`questionEvent`；bridge 用 `unwrap` 兼容裸 request） | `seam`（L1） | `kind ∈ {approval, question, turn, notice}`，**封闭**；`approval/question` 必带 `requestId`（UUID，全局唯一）；`turn` 必带 `turnId`；时间戳单调；**下游只读，不得改写 payload** | v1 | 唯一跨层形状；第二消费者出现前必须冻结 |
-| `SeamOutcome` | 已落地 → `lib/index.js:24` | `seam`（L1） | **封闭** `{"allowed","rejected","cancelled","unavailable"}`，与 DSH `OUTCOMES` 一一对应；不得发明第五种；"没回音"永远不能映射成 `allowed` | v1 | 与 DSH 的唯一出口，映射错一次就是事故 |
+| `SeamOutcome`（`allowed-once`，2026-10-25 与 DSH 词表对齐） | 已落地 → `lib/index.js:24` | `seam`（L1） | **封闭** `{"allowed-once","rejected","cancelled","unavailable"}`，与 DSH `OUTCOMES` 一一对应；不得发明第五种；"没回音"永远不能映射成 `allowed` | v1 | 与 DSH 的唯一出口，映射错一次就是事故 |
 | `WaitPoint` | 已落地 → `src/core/wait-point.js:1` | `router`（L2） | `kind ∈ {approval, question, idle}`；`status ∈ {open, resolved, expired, dropped}`；`answerMode ∈ {closed, text}`（approval→closed，question/idle→text）；id 规则：**`wp-N`（桥接自增）**，与 DSH 的 `requestId`/`callId` 分开：**不落进 meta**，只用于去重键与参数反查（R1-5 修正：原文写"id 用 requestId"与实现不符）；只有 `open` 接受答复；外部原因作废进 `dropped` 并记 `reason ∈ {turn-end, restart, power-loss}`；`expired` 只由 DSH 侧终止产生 | v2 | 应答幂等、乱序、断电、续接全部锚在它上面 |
 | `Answer` | 已落地 → `src/app/bridge.js:190`（text）/ `:174-186`（question 映射） | `router`（L2） | `kind ∈ {option, text, confirm}`；`via ∈ {reply, say}`；`option` 只对 `answerMode=closed` 有效，`text` 只对 `text` 有效（错配 → 回"该请求不接受这种答复"，状态不变）；`confirm` 必须带 `waitPointId`，与待答点不匹配一律驳回 | v1 | 它是"你的话进入任务"的唯一入口 |
 | `Delivery` | 已落地 → `src/app/bridge.js:243`（计数）/ `:294`（闸门） | `outbox`（L3） | 去重键 **`request.callId ?? wp.id`**（R1-5/R2 修正：原文的 `(waitPointId, kind, rev)` 与 `meta.callId` 都不存在）；同键 24h 总推送 ≤3 条（含首次）；被动回复按 `msg_id + msg_seq` 递增、满 4 次转主动（ADR-21）；重试未实现 | v2 | A6 的阈值只能有一个写者 |
@@ -28,7 +28,7 @@
 
 ## 答复受理矩阵（`Answer` 的约定）
 
-| 请求 | 回 `1` | 回 `2` | 回 `yes <id>` | 回自由文本 |
+| 请求 | `/ans <id> 1` | `/ans <id> 2` | `/yes <id>`（仅标注） | `/ans <id> <文本>` |
 |---|---|---|---|---|
 | 普通审批 | 批准 | 拒绝 | 批准 | 不推定（回提示） |
 | 被标注审批 | **不受理**（回"请回 yes <id>"） | 拒绝 | 批准 | 不推定 |

@@ -11,12 +11,13 @@ const findings = []
 const note = (level, text) => findings.push({ level, text })
 
 // 1) 命令集：frame 里 D21 表列出的命令 vs 解析器支持的
-const cmds = ['/list', '/progress', '/new', '/use', '/wake', '/say', '/why', '/done', '/ans', '/yes', '/no', '/doctor']
+const cmds = ['/list', '/progress', '/new', '/use', '/wake', '/say', '/why', '/done', '/ans', '/yes', '/no']
 for (const c of cmds) {
   const inFrame = frame.includes(`\`${c}`) || frame.includes(`${c} <`) || frame.includes(`${c}\``)
-  const parsed = parseCommand(`${c} 1 x`).kind !== 'unknown' || parseCommand(c).kind !== 'unknown'
+  // 每种命令的合法形态不同，这里只验证"命令本身被识别"，不构造参数
+  const parsed = parseCommand(c).kind !== 'unknown'
   if (parsed && !inFrame) note('REQ', `${c} 已实现但 frame 未列（封闭命令集被扩展）`)
-  if (!parsed && c !== '/doctor') note('BUG', `${c} frame 里有但解析器不认`)
+  if (!parsed) note('BUG', `${c} frame 里有但解析器不认`)
 }
 
 // 2) A1 时延 vs 合并窗口
@@ -26,21 +27,21 @@ if (mergeMs > 0) note('INFO', `卡片合并窗口 ${mergeMs}ms：A1 要求热路
 
 // 3) A24 通知内容：frame 只规定时延与条数
 if (fs.readFileSync('src/app/bridge.js', 'utf8').includes('本轮 ${this.#minutes(st)} 分钟')) {
-  note('REQ', '通知正文增加「[标题 · id] + 本轮 N 分钟 + 摘要」：frame A24 未规定文案，属新增内容，需在文档登记')
+  note('NOTE', '通知文案扩展已在 ADR-27 登记（此处仅提示一致性）')
 }
 
 // 4) 短 id 作为参数（frame 的 D20/D21 只写序号）
 if (env.includes('use: /^\\/use\\s+(\\S+)') && frame.includes('/use <n>')) {
-  note('INFO', '/use、/wake、/progress 等接受短 id：frame 写的是序号，属参数放宽（超集），建议登记')
+  note('NOTE', '短 id 参数放宽已在 ADR-25 登记（此处仅提示一致性）')
 }
 
 // 5) 架构文档是否提到新增能力
 const arch = fs.readFileSync('docs/arch/qq-bridge/01-architecture.md', 'utf8')
-for (const k of ['/doctor', 'mergeMs', '合并窗口', 'resolveAgent', '短 id']) {
+for (const k of ['mergeMs', '合并窗口', 'resolveAgent', '短 id', 'allowed-once']) {
   if (!arch.includes(k)) note('DOC', `01-architecture 未提及 ${k}`)
 }
 const contracts = fs.readFileSync('docs/arch/qq-bridge/02-contracts.md', 'utf8')
-if (!contracts.includes('/doctor')) note('DOC', '02 的 QqEnvelope 命令集未包含 /doctor（封闭集合已变）')
+if (contracts.includes('/doctor')) note('DOC', '02 仍写着已删除的 /doctor')
 
 console.log(findings.map((f) => `[${f.level}] ${f.text}`).join('\n'))
 console.log('\n合计', findings.length, '条')

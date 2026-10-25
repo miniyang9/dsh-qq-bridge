@@ -6,7 +6,7 @@
  *   node tools/bb-reset.mjs --keep     # 只备份，不删除
  *
  * 它只动 %LOCALAPPDATA%\qq-bridge\ 下的三样东西：
- *   state.json / audit.jsonl / bridge.log
+ *   state.json / state.audit.jsonl
  * 备份目录带时间戳，绝不覆盖既有备份。
  */
 import fs from 'node:fs'
@@ -18,7 +18,7 @@ const keep = process.argv.includes('--keep')
 const stamp = new Date().toISOString().replace(/[:.]/g, '-')
 const backup = path.join(dir, `backup-${stamp}`)
 
-const files = ['state.json', 'audit.jsonl', 'bridge.log']
+const files = ['state.json', 'state.audit.jsonl']   // 审计文件由 statePath 推导，实际叫 state.audit.jsonl
 fs.mkdirSync(dir, { recursive: true })
 
 let moved = 0
