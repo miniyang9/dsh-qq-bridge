@@ -61,10 +61,10 @@ export function renderCard(waitPoint) {
   const hint = labeled && missing
     ? `改：/yes ${id} 批准 ｜ /no ${id} 拒绝（此请求不可逆，只认 /yes；现场暂不可查：咨询不可用）`
     : labeled
-    ? `改：/yes ${id} 批准 ｜ /no ${id} 拒绝 ｜ /why ${id} 看现场（此请求不可逆，只认 /yes）`
+    ? `改：/yes ${id} 批准 ｜ /no ${id} 拒绝 ｜ /why ${wp.whyTarget ?? id} 看现场（此请求不可逆，只认 /yes）`
     : wp.evidenceMissing
-      ? `改：/ans ${id} 1 批准 ｜ /ans ${id} 2 拒绝 ｜ /why ${id} 看现场（现场暂不可查）`
-      : `改：/ans ${id} 1 批准 ｜ /ans ${id} 2 拒绝 ｜ /why ${id} 看现场`
+      ? `改：/ans ${id} 1 批准 ｜ /ans ${id} 2 拒绝 ｜ /why ${wp.whyTarget ?? id} 看现场（现场暂不可查）`
+      : `改：/ans ${id} 1 批准 ｜ /ans ${id} 2 拒绝 ｜ /why ${wp.whyTarget ?? id} 看现场`
 
   const text = [`[${id}] ${wp.title ?? wp.toolName ?? '待答'}`, ...facts, options, hint].filter(Boolean).join('\n')
   return {

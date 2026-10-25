@@ -17,9 +17,10 @@ export class Audit {
     this.file = file
   }
 
-  async append({ requestId, openid, at = Date.now(), card, evidenceViewed = false, evidenceMissing = false, outcome = null }) {
+  async append({ requestId, wpId = null, openid, at = Date.now(), card, evidenceViewed = false, evidenceMissing = false, outcome = null }) {
     const entry = {
       requestId: requestId ?? null,
+      wpId: wpId ?? null,
       openid: openid ?? null,
       at,
       card: card ?? null,

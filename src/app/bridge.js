@@ -252,6 +252,8 @@ export class Bridge {
 
     this.lastMsgId = data.id
     this.lastMsgAt = this.now()
+    this.msgAt = this.msgAt ?? new Map()
+    if (data?.id) this.msgAt.set(String(data.id), this.now())
 
     const raw = String(data?.content ?? '')
     const cmd = parseCommand(raw)
@@ -446,7 +448,7 @@ export class Bridge {
       openid: data.author?.user_openid,
       at: this.now(),
       card: target.meta?.card ?? null,
-      evidenceViewed: false,
+      evidenceViewed: target.meta?.evidenceViewed === true,
       evidenceMissing: target.meta?.evidenceMissing === true,
       outcome: JSON.stringify(payload),
     })
@@ -608,6 +610,16 @@ export class Bridge {
       return
     }
 
+    // B7：用户真的发起了 /why → 该会话当前所有待答点都算"现场已看过"，写进审计
+    let marked = 0
+    for (const p of this.points.list()) {
+      if (p.status !== 'open') continue
+      if (String(p.meta?.sessionId ?? '') !== target.id) continue
+      p.meta = { ...(p.meta ?? {}), evidenceViewed: true }
+      marked += 1
+    }
+    if (marked > 0) await this.#persist()
+
     let entry = this.consults.get(target.id)
     if (!entry) {
       const sc = this.getSessionController()
@@ -752,7 +764,9 @@ export class Bridge {
     if (arg === null || arg === undefined || String(arg) === '') {
       return '要唤醒哪个？/wake <序号|短id>（空参数无效，先发 /list 看列表）。'
     }
-    const stored = await listStoredSessions(this.sessionsRoot, this.now())
+    // B8：与 /list 同源过滤，否则 /wake 1 会指向被隐藏的咨询会话
+    const hidden = new Set(this.state.consults ?? [])
+    const stored = (await listStoredSessions(this.sessionsRoot, this.now())).filter((x) => !hidden.has(x.id))
     let target = null
     if (/^\d+$/.test(String(arg))) {
       const index = Number(arg)
@@ -800,7 +814,9 @@ export class Bridge {
 
   /** `/use <序号|短id>`：把已加载的会话设为 /say 的默认目标。 */
   async useSession(arg) {
-    const stored = await listStoredSessions(this.sessionsRoot, this.now())
+    // B8：与 /list 同源过滤
+    const hidden = new Set(this.state.consults ?? [])
+    const stored = (await listStoredSessions(this.sessionsRoot, this.now())).filter((x) => !hidden.has(x.id))
     let picked = null
     if (/^\d+$/.test(String(arg))) {
       picked = stored[Number(arg) - 1] ?? null
@@ -1118,8 +1134,9 @@ export class Bridge {
     })
 
     // A6：同一请求 24h 内最多推 3 条（连点/重试不该把手机刷爆）
-    // B1：没有 callId 时用本次待答点 id 作键，避免所有无 callId 的审批共用一个桶
-    const key = String(request.callId ?? `wp-${(this.points.seq ?? 0) + 1}`)
+    // B1：没有 callId 时用桥接自己的递增序号作键（wait-point 的 seq 不是公开属性）
+    this.deliverySeq = (this.deliverySeq ?? 0) + 1
+    const key = String(request.callId ?? `auto-${this.deliverySeq}`)
     const now = this.now()
     const pushed = (this.deliveries.get(key) ?? []).filter((t) => now - t < 86400_000)
     if (pushed.length >= MAX_PUSH_PER_DAY) {
@@ -1142,6 +1159,7 @@ export class Bridge {
         labeled: label.labeled,
         labelReason: label.reason,
         evidenceMissing: label.labeled && !this.#consultAvailable(),
+        whyTarget: shortOf(String(request.agent?.id ?? request.agent?.session?.id ?? '')),
         sessionId: String(request.agent?.id ?? request.agent?.session?.id ?? ''),
       },
     })
@@ -1187,6 +1205,17 @@ export class Bridge {
         && first.outcome !== 'unavailable'
       if (guiDecided) {
         this.points.drop(wp.id, 'answered-on-gui')
+        await this.#persist()   // N1：drop 必须落盘，否则重启会把它当成"待答已作废"
+        await this.audit.append({
+          requestId: String(wp.meta?.callId ?? wp.id),
+          wpId: wp.id,
+          openid: null,
+          at: this.now(),
+          card: wp.meta?.card ?? null,
+          evidenceViewed: wp.meta?.evidenceViewed === true,
+          evidenceMissing: wp.meta?.evidenceMissing === true,
+          outcome: JSON.stringify({ via: 'gui', outcome: first.outcome }),
+        })
         this.send(`已在电脑端处理（${first.outcome}），这条不用再回手机。`, null).catch(() => {})
         return first.outcome
       }
@@ -1270,6 +1299,8 @@ export class Bridge {
         && typeof first.outcome === 'object' && Array.isArray(first.outcome.answers)
         ? first.outcome.answers
         : null
+      const guiAnswered = Array.isArray(guiAnswers) && guiAnswers.length > 0
+      guiAnswers = guiAnswered ? guiAnswers : null
       if (guiAnswers !== null) {
         const picked = guiAnswers[0]
         this.points.drop(wp.id, 'answered-on-gui')
@@ -1280,7 +1311,7 @@ export class Bridge {
           openid: null,
           at: this.now(),
           card: wp.meta?.card ?? null,
-          evidenceViewed: false,
+          evidenceViewed: wp.meta?.evidenceViewed === true,
           outcome: JSON.stringify({ via: 'gui', answers: guiAnswers }),
         }).catch?.(() => {})
         return { answers: guiAnswers }
@@ -1331,13 +1362,20 @@ export class Bridge {
     try {
       const used = this.seqByMsgId.get(msgId) ?? 0
       let res
-      // B9：QQ 的被动回复窗口是 60 分钟（F6）。超过 55 分钟就强制走主动消息，
-      // 否则平台会拒绝这条 passive，卡片静默丢失 → DSH 无限等。
-      const withinWindow = this.lastMsgAt === 0 || this.now() - this.lastMsgAt < 55 * 60_000
+      // B9：QQ 被动回复窗口 60 分钟（F6）。按"被回复的那条 msg_id 的年龄"判断，
+      // 而不是按"最后一次收到消息的时间"——否则拿一个两小时前的 msg_id 还会走被动。
+      const arrived = msgId ? (this.msgAt?.get(String(msgId)) ?? this.lastMsgAt) : 0
+      const withinWindow = arrived === 0 || this.now() - arrived < 55 * 60_000
       if (msgId && used < 4 && withinWindow) {
         const seq = used + 1
         this.seqByMsgId.set(msgId, seq)
-        res = await this.client.sendPassive({ userOpenId: [...this.allowlist][0], msgId, msgSeq: seq, content })
+        try {
+          res = await this.client.sendPassive({ userOpenId: [...this.allowlist][0], msgId, msgSeq: seq, content })
+        } catch (err) {
+          // B9：被动失败不再只记日志——立刻用主动消息兜底，否则卡片静默丢失
+          this.log.error?.(`[qq-bridge] passive 失败，转主动：${err?.message ?? err}`)
+          res = await this.client.sendProactive({ userOpenId: [...this.allowlist][0], content })
+        }
       } else {
         res = await this.client.sendProactive({ userOpenId: [...this.allowlist][0], content })
       }
