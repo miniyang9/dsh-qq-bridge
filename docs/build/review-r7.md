@@ -161,3 +161,11 @@ git checkout be4eff4 -- src/app/bridge.js                                  # 还
 ```
 
 状态：可交接（2026-10-25）
+
+---
+
+## 更正（2026-10-25，由 R8 指出）
+
+上文把 labeled 那格写成 `classify → outside-workspace`。实测带 `sandbox_permissions` 的参数返回
+`{ labeled: true, reason: 'escalation' }`（`label.js` 第一条分支先判 `sandbox_permissions`）。
+结论（labeled 只认 `/yes`）不受影响，此处仅更正归因，避免后来者误读。
