@@ -684,13 +684,32 @@ export class Bridge {
       }
       try {
         // 咨询会话跟着任务会话的工作区走（它只是替你看现场，不建新任务）
-        const createArgs = { cwd: target.cwd ?? this.workspaceRoot }
+        // 有 workspaceId 就用它：只传 cwd 会在 GUI 里落到「未分组」
+        let wsId = null
+        try {
+          const spaces = await listKnownWorkspaces(this.workspaceIndex)
+          wsId = spaces.find((w) => String(w.path) === String(target.cwd ?? ''))?.id ?? null
+        } catch {
+          /* 读不到就退回 cwd */
+        }
+        const createArgs = wsId ? { workspaceId: wsId } : { cwd: target.cwd ?? this.workspaceRoot }
         const created = await createFn(createArgs)
         const newId = created?.sessionId ?? created?.id ?? created?.session?.id ?? null
         const agent = newId ? await this.#waitAgent(agents, newId) : null
         if (!agent) {
           await this.send('咨询会话建好了，但没拿到 agent。', data.id)
           return
+        }
+        // 起个能认出来的名字，避免侧边栏出现"未命名"
+        try {
+          const label = target.title ? String(target.title).slice(0, 16) : shortOf(target.id)
+          agent?.session?.append?.('session/title', {
+            title: `QQ 咨询 · ${label}`,
+            messageSeqs: [],
+            source: { kind: 'user' },
+          })
+        } catch {
+          /* 起名失败不影响咨询 */
         }
         entry = { consultId: String(newId), agent, rounds: 0, pending: null, timer: null }
         this.consults.set(target.id, entry)
