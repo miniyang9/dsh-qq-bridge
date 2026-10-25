@@ -133,7 +133,9 @@ const agent = (sid, extra = {}) => ({ id: sid, session: { id: sid, seq: 0, event
   await inbound('/say session-iiii8888 hi-B', 'm2')
   const replies = sent.slice(before)
   check('BB-70', replies.length === 2, '2/2 有回话', String(replies.length))
-  check('BB-70', replies.every((r) => /未绑定|运行中|没有绑定|正在跑/.test(r)), '2/2 都是拒绝', replies.map((r) => r.slice(0, 20)).join(' | '))
+  // D20/B5 之后：给了显式 id 就不再要求"先绑定"，所以"空闲已加载"的会话会进入确认而不是被拒
+  check('BB-70', /正在跑|运行中/.test(replies[0]) || /先 \/wake/.test(replies[0]), '运行中的目标被拒或提示等待', replies[0].slice(0, 24))
+  check('BB-70', replies.length === 2 && (replies[1].includes('将要发送') || /未绑定|先 \/wake/.test(replies[1])), '第二条要么进入确认要么明确拒绝', replies[1].slice(0, 24))
 }
 
 // ---------- BB-71：标注请求拒绝 /ans 1，只认 /yes ----------

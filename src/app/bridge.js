@@ -147,6 +147,7 @@ export class Bridge {
     this.consults = new Map()
     this.consultIdleMs = 300_000
     this.dualChannel = true
+    this.startedAt = Date.now()
     this.qqCreated = new Set()
     this.failedSends = 0
     this.firstFailedAt = null
@@ -1136,7 +1137,8 @@ export class Bridge {
     // A6：同一请求 24h 内最多推 3 条（连点/重试不该把手机刷爆）
     // B1：没有 callId 时用桥接自己的递增序号作键（wait-point 的 seq 不是公开属性）
     this.deliverySeq = (this.deliverySeq ?? 0) + 1
-    const key = String(request.callId ?? `auto-${this.deliverySeq}`)
+    // B1：带上启动时刻，跨重启也不会与落盘的旧键相撞
+    const key = String(request.callId ?? `auto-${this.startedAt ?? 0}-${this.deliverySeq}`)
     const now = this.now()
     const pushed = (this.deliveries.get(key) ?? []).filter((t) => now - t < 86400_000)
     if (pushed.length >= MAX_PUSH_PER_DAY) {
@@ -1175,6 +1177,7 @@ export class Bridge {
       reversible: label.labeled ? false : undefined,
       labeled: label.labeled,
       evidenceMissing: wp.meta.evidenceMissing,
+      whyTarget: wp.meta.whyTarget,
       options: ['批准', '拒绝'],
     })
     wp.meta.card = { text: card.text, labeled: label.labeled, reason: label.reason }
@@ -1295,15 +1298,16 @@ export class Bridge {
       const qq = wp.promise.then((v) => ({ by: 'qq', ...v }), () => null)
       const first = await Promise.race([qq, gui])
       // B4：提问接口的答复是 { answers: [...] }，不是字符串；'unavailable'/null 都表示桌面没答
-      const guiAnswers = first !== null && first.by === 'gui' && first.outcome
+      const rawAnswers = first !== null && first.by === 'gui' && first.outcome
         && typeof first.outcome === 'object' && Array.isArray(first.outcome.answers)
         ? first.outcome.answers
         : null
-      const guiAnswered = Array.isArray(guiAnswers) && guiAnswers.length > 0
-      guiAnswers = guiAnswered ? guiAnswers : null
+      // B4：空数组不算答复（N6）
+      const guiAnswers = Array.isArray(rawAnswers) && rawAnswers.length > 0 ? rawAnswers : null
       if (guiAnswers !== null) {
         const picked = guiAnswers[0]
         this.points.drop(wp.id, 'answered-on-gui')
+        await this.#persist()   // N1：与审批侧一致，drop 必须落盘
         this.send(`已在电脑端答复（${picked?.selected?.join('/') ?? picked?.custom ?? '已答'}），这条不用再回手机。`, null).catch(() => {})
         await this.audit.append({
           requestId: String(wp.meta?.callId ?? wp.id),

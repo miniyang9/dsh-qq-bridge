@@ -71,8 +71,9 @@ const agent = (sid) => ({ id: sid, session: { id: sid, seq: 0, eventAt: () => nu
   const outcomes = await Promise.all([p1, p2])
   check('BB-52', outcomes.every((o) => o === 'allowed'), '两次都判 allowed（错绑 0 次）', outcomes.join(','))
   const audit = fs.readFileSync(b.audit.file, 'utf8').trim().split('\n').map(JSON.parse)
-  const idsInAudit = new Set(audit.map((e) => e.requestId))
-  check('BB-52', idsInAudit.has(id1) && idsInAudit.has(id2), '审计里两个 id 各一条', [...idsInAudit].join(','))
+  // 契约变化（B7）：审计 requestId 优先记 callId（P1/P2），待答点 id 记在 wpId
+  const refs = new Set(audit.flatMap((e) => [e.requestId, e.wpId]))
+  check('BB-52', refs.has(id1) && refs.has(id2), '审计里两个请求各一条', [...refs].join(','))
 }
 
 // ---------- BB-69：同一工具+同一参数，跨会话标注结论一致 ----------
