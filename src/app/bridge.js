@@ -277,7 +277,7 @@ export class Bridge {
       // "/say doctor 指令…" 与 "/say doctor指令…" 要在意：只有确实像会话引用才当 id
       let text = cmd.text
       let idArg = cmd.id
-      if (idArg !== null && idArg !== undefined && !this.looksLikeSessionRef(idArg)) {
+      if (idArg !== null && idArg !== undefined && !(await this.looksLikeSessionRef(idArg))) {
         text = `${idArg} ${text}`
         idArg = null
       }
@@ -816,7 +816,7 @@ export class Bridge {
   }
 
   /** 这个 token 看起来像不像会话引用（序号或短 id 前缀）？ */
-  looksLikeSessionRef(token) {
+  async looksLikeSessionRef(token) {
     if (token === null || token === undefined) return false
     const t = String(token)
     if (/^\d+$/.test(t)) return true
@@ -825,7 +825,14 @@ export class Bridge {
       const full = String(id).toLowerCase()
       if (full === key || full.replace(/^session-/, '').startsWith(key)) return true
     }
-    return false
+    // B5：磁盘上有、但当前未加载的会话，短 id 也该被识别成"目标"，而不是被吞进正文
+    try {
+      const hidden = new Set(this.state.consults ?? [])
+      const stored = (await listStoredSessions(this.sessionsRoot, this.now())).filter((x) => !hidden.has(x.id))
+      return stored.some((x) => String(x.id).replace(/^session-/, '').toLowerCase().startsWith(key))
+    } catch {
+      return false
+    }
   }
 
   /** `/say [<id|序号|短id>] <text>`：先回显"上次停在哪"，再等你确认，才投递。 */
@@ -835,12 +842,13 @@ export class Bridge {
       await this.send(`还有待答请求没处理（${open.map((p) => p.id).join('、')}），先答复它。`, data.id)
       return
     }
-    if (this.boundAgent === null || this.boundAgent === undefined) {
+    // B5：给定了显式 id 就不要求先 /use（重启后 boundAgent 为空是常态）
+    if ((this.boundAgent === null || this.boundAgent === undefined) && (idArg === null || idArg === undefined)) {
       await this.send('还没有绑定会话：先 /use <序号|短id> 选一个，或在 GUI 里发一句话让它跑起来。', data.id)
       return
     }
 
-    let targetId = String(this.boundAgent.id ?? this.boundAgent.session?.id ?? '')
+    let targetId = String(this.boundAgent?.id ?? this.boundAgent?.session?.id ?? '')
     let agent = this.boundAgent
     if (idArg !== null && idArg !== undefined) {
       const target = await this.resolveTargetId(idArg)
@@ -1257,10 +1265,25 @@ export class Bridge {
         )
       const qq = wp.promise.then((v) => ({ by: 'qq', ...v }), () => null)
       const first = await Promise.race([qq, gui])
-      if (first !== null && first.by === 'gui' && typeof first.outcome === 'string') {
+      // B4：提问接口的答复是 { answers: [...] }，不是字符串；'unavailable'/null 都表示桌面没答
+      const guiAnswers = first !== null && first.by === 'gui' && first.outcome
+        && typeof first.outcome === 'object' && Array.isArray(first.outcome.answers)
+        ? first.outcome.answers
+        : null
+      if (guiAnswers !== null) {
+        const picked = guiAnswers[0]
         this.points.drop(wp.id, 'answered-on-gui')
-        this.send(`已在电脑端处理（${first.outcome}），这条不用再回手机。`, null).catch(() => {})
-        return first.outcome
+        this.send(`已在电脑端答复（${picked?.selected?.join('/') ?? picked?.custom ?? '已答'}），这条不用再回手机。`, null).catch(() => {})
+        await this.audit.append({
+          requestId: String(wp.meta?.callId ?? wp.id),
+          wpId: wp.id,
+          openid: null,
+          at: this.now(),
+          card: wp.meta?.card ?? null,
+          evidenceViewed: false,
+          outcome: JSON.stringify({ via: 'gui', answers: guiAnswers }),
+        }).catch?.(() => {})
+        return { answers: guiAnswers }
       }
       settled = first !== null && first.by === 'qq' ? first : await qq
     } else {
