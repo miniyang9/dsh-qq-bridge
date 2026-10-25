@@ -14,6 +14,22 @@ import { approvalEvent, questionEvent, isEvent } from '../core/events.js'
 import { Audit } from './audit.js'
 import { listStoredSessions, humanAge, defaultSessionsRoot, listKnownWorkspaces } from '../core/sessions.js'
 
+/**
+ * 一张票 → 审批结局。批准/yes 都算允许；其余算拒绝。
+ * 单独导出是为了让测试能直接锁住映射（/yes 与 /ans 1 必须等价）。
+ */
+export function outcomeFromVote(vote) {
+  const v = String(vote ?? '').trim().toLowerCase()
+  return v === '批准' || v === 'yes' || v === 'allow' || v === 'allowed' ? 'allowed' : 'rejected'
+}
+
+/** GUI 想写结果时发现手机那票已先结算：以已生效的那票为准（不可解析时按取消）。 */
+export function decisionFromOther(other) {
+  if (other === null || other === undefined) return 'cancelled'
+  if (other.status !== 'resolved') return 'cancelled'
+  return outcomeFromVote(other.text)
+}
+
 function shortOf(id) {
   return String(id ?? '').replace(/^session-/, '').slice(0, 6)
 }
@@ -1215,8 +1231,7 @@ export class Bridge {
         // N2：drop 返回 false 表示手机那票已经先结算了——此时以已生效的结局为准
         if (!this.points.drop(wp.id, 'answered-on-gui')) {
           const other = await qq
-          if (other?.status === 'resolved') return other.text === '批准' ? 'allowed' : 'rejected'
-          return 'cancelled'
+          return decisionFromOther(other)
         }
         await this.#persist()   // N1：drop 必须落盘，否则重启会把它当成"待答已作废"
         await this.audit.append({
