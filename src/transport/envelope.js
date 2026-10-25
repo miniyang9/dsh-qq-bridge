@@ -20,6 +20,11 @@ const COMMANDS = {
   wake: /^\/wake(?:\s+(\S+))?\s*$/i,
   new: /^\/new(?:\s+(\S+))?\s*$/i,
   list: /^\/list\s*$/i,
+  mode: /^\/mode\s*$/i,
+  pc: /^\/pc(?:\s+(\d+))?\s*$/i,
+  away: /^\/away\s*$/i,
+  auto: /^\/auto\s*$/i,
+  more: /^\/more(?:\s+(\S+))?\s*$/i,
   progress: /^\/progress(?:\s+(\S+))?\s*$/i,
 }
 
@@ -118,6 +123,11 @@ export function parseCommand(text) {
   const nw = COMMANDS.new.exec(raw)
   if (nw) return { kind: 'new', arg: nw[1] ?? null }
 
+  if (COMMANDS.mode.test(raw)) return { kind: 'mode' }
+  if (COMMANDS.pc.test(raw)) { const m = COMMANDS.pc.exec(raw); return { kind: 'pc', minutes: m[1] ? Number(m[1]) : null } }
+  if (COMMANDS.away.test(raw)) return { kind: 'away' }
+  if (COMMANDS.auto.test(raw)) return { kind: 'auto' }
+  if (COMMANDS.more.test(raw)) { const m = COMMANDS.more.exec(raw); return { kind: 'more', id: m[1] ?? null } }
   if (COMMANDS.list.test(raw)) return { kind: 'list' }
   const prog = COMMANDS.progress.exec(raw)
   if (prog) return { kind: 'progress', id: prog[1] ?? null }

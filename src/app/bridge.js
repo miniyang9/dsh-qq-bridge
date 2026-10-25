@@ -13,6 +13,7 @@ import { classify, findToolArgs } from '../core/label.js'
 import { approvalEvent, questionEvent, isEvent } from '../core/events.js'
 import { Audit } from './audit.js'
 import { listStoredSessions, humanAge, defaultSessionsRoot, listKnownWorkspaces } from '../core/sessions.js'
+import { Presence, PRESENCE, electronIdleProbe } from '../core/presence.js'
 
 /**
  * 一张票 → 审批结局。批准/yes 都算允许；其余算拒绝。
@@ -145,6 +146,9 @@ export class Bridge {
     getWorkspaceController = () => null,
     probeServices = null,
     maxNewPerWorkspacePerDay = 10,
+    idleProbe = null,
+    presenceIdleMs = 5 * 60_000,
+    sayReplyChars = 800,
     mergeMs = 0,
     now = () => Date.now(),
   } = {}) {
@@ -170,6 +174,16 @@ export class Bridge {
     this.consultIdleMs = 300_000
     this.dualChannel = true
     this.maxNoticesPerDay = 10
+    this.sayReplyChars = sayReplyChars
+    // 在场判定：只有空闲一维；探针可由测试注入（idleProbe）
+    this.presence = new Presence({
+      probe: idleProbe ?? (electronIdleProbe() ?? (() => null)),
+      now: () => this.now(),
+      idleThresholdMs: presenceIdleMs,
+      confirmSamples: 2,
+    })
+    // 模式：auto / pc（静音到 until） / away（强制推送）
+    // 注意：此时 this.state 还没建（由 #loadState 负责），默认值在 #mode() 里兜底
     this.startedAt = Date.now()
     this.qqCreated = new Set()
     this.failedSends = 0
@@ -316,6 +330,33 @@ export class Bridge {
     }
     if (cmd.kind === 'list') {
       await this.send(await this.listSessions(), data.id)
+      return
+    }
+    if (cmd.kind === 'mode') {
+      await this.send(this.#modeText(), data.id)
+      return
+    }
+    if (cmd.kind === 'pc') {
+      const minutes = cmd.minutes ?? 60
+      this.state.mode = { mode: 'pc', until: this.now() + minutes * 60_000 }
+      await this.#persist()
+      await this.send(`已静音 ${minutes} 分钟（到期自动恢复）。审批 5 分钟没人答仍会推给你。`, data.id)
+      return
+    }
+    if (cmd.kind === 'away') {
+      this.state.mode = { mode: 'away', until: null }
+      await this.#persist()
+      await this.send('已切到「始终推送」。（/auto 恢复自动）', data.id)
+      return
+    }
+    if (cmd.kind === 'auto') {
+      this.state.mode = { mode: 'auto', until: null }
+      await this.#persist()
+      await this.send('已恢复自动判定（按空闲时长）。', data.id)
+      return
+    }
+    if (cmd.kind === 'more') {
+      await this.#morePage(cmd.id, data)
       return
     }
     if (cmd.kind === 'progress') {
@@ -510,6 +551,13 @@ export class Bridge {
 
   /** 合并窗口：窗口内的多张卡片合成一条发送（C2）。mergeMs=0 时逐条立即发。 */
   async #queueCard(id, text) {
+    const wp = this.points.get(id)
+    if (this.#present()) {
+      // 人在电脑前：DSH 自己会弹窗，不再推 QQ（5 分钟兜底 / 离开补推会接手）
+      if (wp) wp.meta = { ...(wp.meta ?? {}), pushedToQQ: false }
+      return
+    }
+    if (wp) wp.meta = { ...(wp.meta ?? {}), pushedToQQ: true }
     if (this.mergeMs <= 0) return this.send(text, this.lastMsgId)
     this.cardBuffer.push({ id, text })
     if (this.cardTimer === null) {
@@ -1093,6 +1141,55 @@ export class Bridge {
    * A8：通知预算（自然日 ≤ maxNoticesPerDay，默认 10）。
    * 只约束"主动找你"的通知（空闲/停滞）；审批卡片永远不受限。
    */
+  /** /mode 的展示文本。 */
+  #modeText() {
+    const mode = this.#mode()
+    const info = this.presence.describe()
+    const present = this.#present()
+    const until = this.state.mode?.until
+    const left = mode === 'pc' && until ? Math.max(0, Math.round((until - this.now()) / 60_000)) : null
+    return [
+      `模式：${mode === 'pc' ? `静音（还剩 ${left} 分钟）` : mode === 'away' ? '始终推送' : '自动'}`,
+      `判定：${present ? '在场（不打扰）' : '离开（会推送）'}`,
+      `依据：空闲 ${info.idleText}`,
+      mode === 'auto' ? '规则：空闲 < 5 分钟视为在场，≥5 分钟视为离开' : '（手动模式，忽略空闲）',
+    ].join('\n')
+  }
+
+  /** 离开时把"还等着你做决定"的请求补推出去（跑完/状态类不补）。 */
+  async #flushPending(reason) {
+    let n = 0
+    for (const p of this.points.list()) {
+      if (p.status !== 'open') continue
+      if (p.meta?.pushedToQQ === true) continue
+      p.meta = { ...(p.meta ?? {}), pushedToQQ: true }
+      n += 1
+      const text = p.meta?.card?.text ?? `[${p.id}] ${p.title ?? '待答请求'}`
+      await this.send(`[补发] ${reason}\n${text}`, null)
+    }
+    if (n > 0) await this.#persist().catch(() => {})
+    return n
+  }
+
+  /** 当前模式（pc 到期自动回 auto）。 */
+  #mode() {
+    const m = this.state.mode ?? { mode: 'auto', until: null }
+    if (m.mode === 'pc' && m.until !== null && this.now() > m.until) {
+      this.state.mode = { mode: 'auto', until: null }
+      this.#persist().catch(() => {})
+      return 'auto'
+    }
+    return m.mode
+  }
+
+  /** 是否"人在电脑前"：pc 视为在场；away 视为离开；auto 看空闲。 */
+  #present() {
+    const mode = this.#mode()
+    if (mode === 'pc') return true
+    if (mode === 'away') return false
+    return this.presence.state === PRESENCE.PRESENT
+  }
+
   #noticeBudgetOk() {
     const day = new Date(this.now()).toISOString().slice(0, 10)
     const st = this.state.notices ?? { day, count: 0 }
@@ -1204,6 +1301,12 @@ export class Bridge {
   /** 由定时器调用；测试也可直接调。返回这一轮发出的通知（便于断言）。 */
   async tick() {
     const sent = []
+    // 先采样在场：变吵（→离开）立即生效，并把压在手里的待答请求补推出去
+    const snap = this.presence.sample()
+    if (snap.direction === 'away') {
+      await this.#flushPending('你现在离开了，这条先补给你')
+    }
+
     for (const [id, st] of this.sessionState) {
       if (!st.turnOpen) continue
       if (!(await this.#isWatched(st.session))) continue
@@ -1249,19 +1352,64 @@ export class Bridge {
         }
       }
     }
+    // 兜底：静音期间超过 5 分钟仍未答 → 强制推一条（每请求只一次）
+    for (const p of this.points.list()) {
+      if (p.status !== 'open') continue
+      if (p.meta?.pushedToQQ === true) continue
+      const age = this.now() - (p.createdAt ?? this.now())
+      if (age < 5 * 60_000) continue
+      p.meta = { ...(p.meta ?? {}), pushedToQQ: true }
+      const text = p.meta?.card?.text ?? `[${p.id}] ${p.title ?? '待答请求'}`
+      await this.send(`[补发] 你在电脑前但 5 分钟没有处理，这条先推给你\n${text}`, null)
+    }
     if (touched) await this.#persist().catch(() => {})
 
     return sent
   }
 
-  /** /say 注入后的回执：这一轮结束时把首句带回来（一次）。 */
+  /**
+   * /say 注入后的回执：把这一轮最后一条助手消息带回来。
+   * 超过 sayReplyChars 就分片，并告诉用户一共几片、怎么取下一片。
+   */
   async #relaySayResult(id, st) {
     const relay = this.sayRelay
     if (!relay || relay.sessionId !== id) return
     this.sayRelay = null
-    const summary = this.#roundSummary(st)
-    const text = summary.kind === 'text' ? summary.text : `工具：${summary.text}`
-    await this.send(`会话 ${shortOf(id)} 回复：${text}`, null)
+
+    const raw = String(st.lastText ?? '').trim()
+    const full = raw || `（这一轮没有文本输出，工具：${this.#roundSummary(st).text}）`
+    const size = Math.max(200, Number(this.sayReplyChars ?? 800))
+    const chunks = []
+    for (let i = 0; i < full.length; i += size) chunks.push(full.slice(i, i + size))
+    if (chunks.length === 0) chunks.push('')
+
+    this.sayPages = { sessionId: String(id), chunks, index: 0 }
+    const head = chunks.length > 1 ? `会话 ${shortOf(id)} 回复（1/${chunks.length} 片）：` : `会话 ${shortOf(id)} 回复：`
+    const more = chunks.length > 1 ? `\n— 共 ${chunks.length} 片；发 /more ${shortOf(id)} 看下一片` : ''
+    await this.send(head + '\n' + chunks[0] + more, null)
+  }
+
+  /** /more <id>：取下一片。 */
+  async #morePage(idArg, data) {
+    const pages = this.sayPages
+    if (!pages) {
+      await this.send('没有可续看的内容（上一轮已看完或还没收到回复）。', data.id)
+      return
+    }
+    if (idArg && String(idArg).replace(/^session-/, '').toLowerCase() !== pages.sessionId.replace(/^session-/, '').toLowerCase().slice(0, String(idArg).length)) {
+      await this.send(`当前续看的是 ${shortOf(pages.sessionId)}；要换会话请重新 /say。`, data.id)
+      return
+    }
+    pages.index += 1
+    if (pages.index >= pages.chunks.length) {
+      this.sayPages = null
+      await this.send('已经到最后一片了。', data.id)
+      return
+    }
+    const total = pages.chunks.length
+    const idx = pages.index
+    const tail = idx + 1 < total ? `\n— 第 ${idx + 1}/${total} 片；发 /more 继续` : `\n— 第 ${idx + 1}/${total} 片（已是最后一片）`
+    await this.send(`会话 ${shortOf(pages.sessionId)} 回复（${idx + 1}/${total} 片）：\n${pages.chunks[idx]}${tail}`, data.id)
   }
 
   /**
