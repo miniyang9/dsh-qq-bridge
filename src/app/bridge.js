@@ -1212,7 +1212,12 @@ export class Bridge {
         && typeof first.outcome === 'string'
         && first.outcome !== 'unavailable'
       if (guiDecided) {
-        this.points.drop(wp.id, 'answered-on-gui')
+        // N2：drop 返回 false 表示手机那票已经先结算了——此时以已生效的结局为准
+        if (!this.points.drop(wp.id, 'answered-on-gui')) {
+          const other = await qq
+          if (other?.status === 'resolved') return other.text === '批准' ? 'allowed' : 'rejected'
+          return 'cancelled'
+        }
         await this.#persist()   // N1：drop 必须落盘，否则重启会把它当成"待答已作废"
         await this.audit.append({
           requestId: String(wp.meta?.callId ?? wp.id),
@@ -1311,7 +1316,14 @@ export class Bridge {
       const guiAnswers = Array.isArray(rawAnswers) && rawAnswers.length > 0 ? rawAnswers : null
       if (guiAnswers !== null) {
         const picked = guiAnswers[0]
-        this.points.drop(wp.id, 'answered-on-gui')
+        // N2：手机那票已经先结算时，以它为准，不写第二条审计
+        if (!this.points.drop(wp.id, 'answered-on-gui')) {
+          const other = await qq
+          if (other?.status === 'resolved') {
+            return { answers: [{ id: q.id, selected: other.selected ?? [], ...(other.custom !== undefined ? { custom: other.custom } : {}) }] }
+          }
+          return { answers: [] }
+        }
         await this.#persist()   // N1：与审批侧一致，drop 必须落盘
         this.send(`已在电脑端答复（${picked?.selected?.join('/') ?? picked?.custom ?? '已答'}），这条不用再回手机。`, null).catch(() => {})
         await this.audit.append({
