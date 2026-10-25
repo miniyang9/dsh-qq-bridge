@@ -32,6 +32,29 @@ export function decisionFromOther(other) {
   return outcomeFromVote(other.text)
 }
 
+/** 打错一个字符时猜一下用户想找谁（简单编辑距离，取最近的）。 */
+export function suggestId(token, ids) {
+  const a = String(token ?? '').toLowerCase()
+  if (!a) return null
+  const dist = (x, y) => {
+    const d = Array.from({ length: a.length + 1 }, (_, i) => [i])
+    for (let j = 1; j <= y.length; j += 1) d[0][j] = j
+    for (let i = 1; i <= x.length; i += 1) {
+      for (let j = 1; j <= y.length; j += 1) {
+        d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1))
+      }
+    }
+    return d[x.length][y.length]
+  }
+  let best = null
+  for (const id of ids) {
+    const short = String(id).replace(/^session-/, '').toLowerCase()
+    const k = Math.min(dist(a, short), dist(a, short.slice(0, a.length)))
+    if (best === null || k < best.k) best = { k, short: short.slice(0, 6) }
+  }
+  return best !== null && best.k <= 2 ? best.short : null
+}
+
 function shortOf(id) {
   return String(id ?? '').replace(/^session-/, '').slice(0, 6)
 }
@@ -800,7 +823,10 @@ export class Bridge {
     } else {
       const key = String(arg).replace(/^session-/, '').toLowerCase()
       target = stored.find((x) => String(x.id).replace(/^session-/, '').toLowerCase().startsWith(key))
-      if (!target) return `参数「${arg}」无效：找不到这个会话；发 /list 看短 id。`
+      if (!target) {
+        const hint = suggestId(arg, stored.map((x) => x.id))
+        return `参数「${arg}」无效：找不到这个会话；${hint ? `你是不是想 /wake ${hint}？` : '发 /list 看短 id。'}`
+      }
     }
     if (this.sessions.has(target.id)) {
       return `${shortOf(target.id)} 已经加载着（${isBusy(this.sessions.get(target.id)?.agent?.session) ? '运行中' : '空闲'}），不用唤醒。`
