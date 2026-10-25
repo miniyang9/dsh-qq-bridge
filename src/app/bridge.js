@@ -405,6 +405,12 @@ export class Bridge {
       return
     }
 
+    // B6：提问只能 /ans；/yes /no 对提问不成立（02 契约矩阵为"—"）
+    if (target.kind === 'question' && (cmd.kind === 'confirm' || cmd.kind === 'reject')) {
+      await this.send(`这是提问，不是审批：请用 /ans ${target.id} <选项序号> 或 /ans ${target.id} <文本>。`, data.id)
+      return
+    }
+
     let payload
     if (cmd.kind === 'reject') {
       payload = target.kind === 'question'
@@ -434,7 +440,9 @@ export class Bridge {
     await this.send(`已收到：${target.id} → ${payload.selected?.[0] ?? payload.text ?? payload.custom}`, data.id)
     const res = this.points.answer(target.id, payload)
     await this.audit.append({
-      requestId: target.id,
+      // B7：能对齐 DSH 日志时优先用 callId，同时保留 wp-N 便于本地追溯
+      requestId: String(target.meta?.callId ?? target.id),
+      wpId: target.id,
       openid: data.author?.user_openid,
       at: this.now(),
       card: target.meta?.card ?? null,
@@ -553,7 +561,9 @@ export class Bridge {
   /** 把 id 参数解析成会话：数字=列表序号，其它=短 id 前缀；库里有就用库里的，没有原样当 id。 */
   async resolveTargetId(idArg) {
     if (idArg === null || idArg === undefined) return null
-    const stored = await listStoredSessions(this.sessionsRoot, this.now())
+    // B8：/list 会隐藏咨询会话，序号解析必须用同一份列表，否则 /use 1 会绑到咨询会话
+    const hidden = new Set(this.state.consults ?? [])
+    const stored = (await listStoredSessions(this.sessionsRoot, this.now())).filter((x) => !hidden.has(x.id))
     if (/^\d+$/.test(String(idArg))) {
       const picked = stored[Number(idArg) - 1]
       return picked ? { id: picked.id, cwd: picked.cwd, title: picked.title } : null
@@ -564,6 +574,9 @@ export class Bridge {
       return full === key || full.replace(/^session-/, '').startsWith(key)
     })
     if (found) return { id: found.id, cwd: found.cwd, title: found.title }
+    // B3：待答点 id（wp-N）绝不能被当成会话 id（卡片的 /why 提示会误导）
+    if (/^wp-\d+$/i.test(String(idArg))) return null
+    // 其它未入库的 token 仍按"可能是刚建的会话"处理（B5：新建会话要能立刻 /why）
     return { id: String(idArg), cwd: null, title: null }
   }
 
@@ -1097,7 +1110,8 @@ export class Bridge {
     })
 
     // A6：同一请求 24h 内最多推 3 条（连点/重试不该把手机刷爆）
-    const key = String(request.callId ?? 'no-call')
+    // B1：没有 callId 时用本次待答点 id 作键，避免所有无 callId 的审批共用一个桶
+    const key = String(request.callId ?? `wp-${(this.points.seq ?? 0) + 1}`)
     const now = this.now()
     const pushed = (this.deliveries.get(key) ?? []).filter((t) => now - t < 86400_000)
     if (pushed.length >= MAX_PUSH_PER_DAY) {
@@ -1159,7 +1173,11 @@ export class Bridge {
         )
       const qq = wp.promise.then((v) => ({ by: 'qq', ...v }), () => null)
       const first = await Promise.race([qq, gui])
-      if (first !== null && first.by === 'gui' && typeof first.outcome === 'string') {
+      // 只有"真决策"才算 GUI 已答；无桌面 answerer 时瀑布兜底返回的 'unavailable' 不算
+      const guiDecided = first !== null && first.by === 'gui'
+        && typeof first.outcome === 'string'
+        && first.outcome !== 'unavailable'
+      if (guiDecided) {
         this.points.drop(wp.id, 'answered-on-gui')
         this.send(`已在电脑端处理（${first.outcome}），这条不用再回手机。`, null).catch(() => {})
         return first.outcome
@@ -1290,7 +1308,10 @@ export class Bridge {
     try {
       const used = this.seqByMsgId.get(msgId) ?? 0
       let res
-      if (msgId && used < 4) {
+      // B9：QQ 的被动回复窗口是 60 分钟（F6）。超过 55 分钟就强制走主动消息，
+      // 否则平台会拒绝这条 passive，卡片静默丢失 → DSH 无限等。
+      const withinWindow = this.lastMsgAt === 0 || this.now() - this.lastMsgAt < 55 * 60_000
+      if (msgId && used < 4 && withinWindow) {
         const seq = used + 1
         this.seqByMsgId.set(msgId, seq)
         res = await this.client.sendPassive({ userOpenId: [...this.allowlist][0], msgId, msgSeq: seq, content })
