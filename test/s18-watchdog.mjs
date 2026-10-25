@@ -1,3 +1,4 @@
+import './_setup.mjs'
 ﻿const failures = []
 const check = (ok,label,detail='') => { console.log((ok?'PASS  ':'FAIL  ')+label+(detail?'  — '+detail:'')); if(!ok) failures.push(label) }
 const { QQClient } = await import('../src/transport/qq.js')

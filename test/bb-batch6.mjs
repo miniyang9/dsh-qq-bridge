@@ -1,3 +1,4 @@
+import './_setup.mjs'
 ﻿const results = []
 const check = (id, ok, label, detail='') => { results.push({id,ok,label,detail}); console.log(`${ok?'PASS':'FAIL'}  ${id}  ${label}${detail?'  — '+detail:''}`) }
 const fs = await import('node:fs')

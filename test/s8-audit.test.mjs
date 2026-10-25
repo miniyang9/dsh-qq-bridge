@@ -1,3 +1,4 @@
+import './_setup.mjs'
 /**
  * S8 验收：Event 落地 + 审计（A26）
  */

@@ -1,3 +1,4 @@
+import './_setup.mjs'
 /**
  * S6 验收：LabelPolicy 三条判据 + 参数反查
  *

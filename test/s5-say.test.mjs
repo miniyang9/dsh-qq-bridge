@@ -1,3 +1,4 @@
+import './_setup.mjs'
 /**
  * S5 验收：`/say` 续接已停会话
  *

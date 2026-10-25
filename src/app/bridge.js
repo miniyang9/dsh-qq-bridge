@@ -169,6 +169,7 @@ export class Bridge {
     this.consults = new Map()
     this.consultIdleMs = 300_000
     this.dualChannel = true
+    this.maxNoticesPerDay = 10
     this.startedAt = Date.now()
     this.qqCreated = new Set()
     this.failedSends = 0
@@ -1044,6 +1045,7 @@ export class Bridge {
     if (!id) return
     const st = this.sessionState.get(id) ?? { lastAt: 0, turnOpen: false, notified: {} }
     st.session = session
+    st.lastType = event?.type
     st.lastAt = this.now()
     if (event?.type === 'turn/start') {
       st.turnOpen = true
@@ -1065,13 +1067,34 @@ export class Bridge {
       st.turnOpen = false
       // 回执不依赖"是否被监视"：/say 注进去的，一定要把结果带回来
       await this.#relaySayResult(id, st)
-      if (!st.notified.idle && await this.#isWatched(session)) {
+      const openHere = this.points.list().some((p) => p.status === 'open')
+      if (!st.notified.idle && !openHere && await this.#isWatched(session)) {
         st.notified.idle = true
         this.sessionState.set(id, st)
-        await this.send(await this.#idleMessage(id, st), null)
+        if (this.#noticeBudgetOk()) {
+          await this.send(await this.#idleMessage(id, st), null)
+        }
       }
     }
     this.sessionState.set(id, st)
+  }
+
+  /**
+   * A8：通知预算（自然日 ≤ maxNoticesPerDay，默认 10）。
+   * 只约束"主动找你"的通知（空闲/停滞）；审批卡片永远不受限。
+   */
+  #noticeBudgetOk() {
+    const day = new Date(this.now()).toISOString().slice(0, 10)
+    const st = this.state.notices ?? { day, count: 0 }
+    if (st.day !== day) { st.day = day; st.count = 0 }
+    if (st.count >= (this.maxNoticesPerDay ?? 10)) {
+      this.state.notices = st
+      return false
+    }
+    st.count += 1
+    this.state.notices = st
+    this.#persist().catch(() => {})
+    return true
   }
 
   /**
@@ -1174,14 +1197,20 @@ export class Bridge {
     for (const [id, st] of this.sessionState) {
       if (!st.turnOpen) continue
       if (!(await this.#isWatched(st.session))) continue
+      // A30：工具调用进行中（还没有后续事件）不算停滞，避免长命令被误报"卡住"
+      if (st.lastType === 'tool/call') continue
       const idleFor = this.now() - st.lastAt
       if (idleFor >= this.stallSecondMs && !st.notified.stall2) {
         st.notified.stall2 = true
-        await this.send(await this.#stallMessage(id, st, idleFor, true), null)
+        if (this.#noticeBudgetOk()) {
+          await this.send(await this.#stallMessage(id, st, idleFor, true), null)
+        }
         sent.push(id)
       } else if (idleFor >= this.stallFirstMs && !st.notified.stall1) {
         st.notified.stall1 = true
-        await this.send(await this.#stallMessage(id, st, idleFor, false), null)
+        if (this.#noticeBudgetOk()) {
+          await this.send(await this.#stallMessage(id, st, idleFor, false), null)
+        }
         sent.push(id)
       }
     }

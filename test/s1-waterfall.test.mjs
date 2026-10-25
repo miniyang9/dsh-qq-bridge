@@ -1,3 +1,4 @@
+import './_setup.mjs'
 /**
  * S1 验收：用**真实的 cordis**（从安装目录里的 app.asar 直接加载）跑一次 waterfall，
  * 断言"结果来自插件"，而不是 DSH 的默认回退 "unavailable"。

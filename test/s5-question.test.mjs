@@ -1,3 +1,4 @@
+import './_setup.mjs'
 /**
  * S5 验收：user-questions 接缝 + 自由文本答复
  *

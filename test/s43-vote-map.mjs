@@ -1,3 +1,4 @@
+import './_setup.mjs'
 /**
  * N2 的锁（R6 指出 s42 没锁住 GUI 分支）
  *

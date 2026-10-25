@@ -1,3 +1,4 @@
+import './_setup.mjs'
 /**
  * S3 验收：Bridge → QQ 卡片 → 你的回复 → outcome
  *

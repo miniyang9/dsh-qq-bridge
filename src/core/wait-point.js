@@ -46,6 +46,13 @@ export class WaitPointStore {
         promise: Promise.resolve({ id: it.id, status: it.status }),
       })
     }
+    // A10：重启后不能让新请求复用旧 id —— 把计数器推到已存在的最大序号之后
+    let max = 0
+    for (const it of items) {
+      const n = Number(String(it.id ?? '').replace(/^wp-/, ''))
+      if (Number.isFinite(n) && n > max) max = n
+    }
+    if (max > seq) seq = max
   }
 
   get(id) {

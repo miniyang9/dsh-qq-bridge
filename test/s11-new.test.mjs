@@ -1,3 +1,4 @@
+import './_setup.mjs'
 ﻿import fs from 'node:fs'
 const failures = []
 const check = (ok, label, detail='') => { console.log((ok?'PASS  ':'FAIL  ')+label+(detail?'  — '+detail:'')); if(!ok) failures.push(label) }

@@ -1,3 +1,4 @@
+import './_setup.mjs'
 ﻿import fs from 'node:fs'
 const failures=[]; const check=(ok,l,d='')=>{console.log((ok?'PASS  ':'FAIL  ')+l+(d?'  — '+d:''));if(!ok)failures.push(l)}
 const { Bridge } = await import('../src/app/bridge.js')
