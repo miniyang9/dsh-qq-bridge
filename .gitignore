@@ -7,3 +7,5 @@
 
 .dsh-repair/
 *.png.bak
+
+*.log
