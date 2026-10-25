@@ -28,7 +28,7 @@ const fakeClient = {
   },
 }
 
-const bridge = new Bridge({ appId: 'x', appSecret: 'y', allowlist: ['u1'], client: fakeClient, log: { info() {}, error() {} }, statePath: `C:/Project/WatchDog/.tmp/t-order-${Date.now()}-${Math.random()}.json` })
+const bridge = new Bridge({ appId: 'x', appSecret: 'y', allowlist: ['u1'], client: fakeClient, log: { info() {}, error() {} }, statePath: `.tmp/t-order-${Date.now()}-${Math.random()}.json` })
 await bridge.start()
 
 // 用序列记录 resolve 发生的时刻

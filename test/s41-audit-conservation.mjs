@@ -8,7 +8,7 @@ const failures = []
 const check = (l, ok, d = '') => { console.log((ok ? 'PASS  ' : 'FAIL  ') + l + (d ? '  — ' + d : '')); if (!ok) failures.push(l) }
 const { Bridge } = await import('../src/app/bridge.js')
 
-const dir = 'C:/Project/WatchDog/.tmp/t-audit-cons'
+const dir = '.tmp/t-audit-cons'
 fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true })
 
 function mk(tag) {

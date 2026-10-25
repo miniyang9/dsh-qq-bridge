@@ -12,7 +12,7 @@
  */
 import fs from 'node:fs';
 
-const ENV = 'C:\\Project\\WatchDog\\.env';
+const ENV = '.env';
 const API = process.env.QQ_API_BASE || 'https://api.sgroup.qq.com';
 const SANDBOX_API = 'https://sandbox.api.sgroup.qq.com';
 

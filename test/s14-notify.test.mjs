@@ -4,7 +4,7 @@ const { Bridge } = await import('../src/app/bridge.js')
 const sent = []
 const client = { on(){}, async start(){}, async stop(){}, async sendPassive(a){sent.push(a.content);return{id:'p'}}, async sendProactive(a){sent.push(a.content);return{id:'a'}} }
 let now = 1_000_000
-const b = new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath:'C:/Project/WatchDog/.tmp/t-n-'+Date.now()+'.json', sessionsRoot:'C:/Project/WatchDog/.tmp/fake-none', getAgents:()=>null, getSessionController:()=>null, now: () => now, log:{info(){},error(){}} })
+const b = new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath:'.tmp/t-n-'+Date.now()+'.json', sessionsRoot:'.tmp/fake-none', getAgents:()=>null, getSessionController:()=>null, now: () => now, log:{info(){},error(){}} })
 await b.start()
 const sess = { id: 'sess-notify-1111' }
 b.bindAgent({ id: 'sess-notify-1111', session: sess })

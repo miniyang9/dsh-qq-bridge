@@ -2,7 +2,7 @@
 
 # 构建台账 · qq-bridge
 
-frame：`docs/frame/qq-bridge.md`（v5，young，2026-10-24）
+frame：`docs/frame/qq-bridge.md`（v5，<signer>，2026-10-24）
 架构：`docs/arch/qq-bridge/01-architecture.md` · 契约 `02`（冻结 2026-10-24）· 决策 `03`
 
 ## 外部依赖盘点（2026-10-24，探针实测）
@@ -385,7 +385,7 @@ S8 PASS  (15 条断言)
 - **归档判定改用权威字段**：`~/.dsh/storages/workspace.json` 的 `global.archivedSessionIds`。
   之前"`agentPreset` 为空 = headless 会话"的推断是**错的**——那两条其实是被归档的。
 - `/list` 现在：全部非 subagent、非归档会话，跨工作区；每行「标题｜多久以前｜状态｜项目」。
-- frame v6 已签（young）：D15 `/wake`、D16 `/new`（限已知工作区）、D17 每工作区每天 ≤3、X4 → X4′、A31–A33。
+- frame v6 已签（<signer>）：D15 `/wake`、D16 `/new`（限已知工作区）、D17 每工作区每天 ≤3、X4 → X4′、A31–A33。
 - API 探针（只读）：`createSession({ cwd, agentPreset?, sessionId? })`、`createAgent(ownerCtx, { sessionId | resumeSessionId, seed?, meta?, agentOptions? })`
   —— 两条路都存在。
 
@@ -549,7 +549,7 @@ S19 PASS (4) / S20 PASS (6) / S21 PASS (4)
 
 - 人类特批第 3 轮；评审关闭核验：R1(2) 已关闭，**全量复算 20/20 行可由 FQ-2 推出**，末行 `状态：已冻结（可用例集，2026-10-24）`。
 - 冻结对象：84 条（可执行 79 / 挂起 5），A1–A36 全覆盖。
-- frame 已补签 v7（young，2026-10-24，状态：已签）。
+- frame 已补签 v7（<signer>，2026-10-24，状态：已签）。
 
 执行前置（未完成）：
 1. `node tools/bb-reset.mjs` —— 复位夹具（已备好工具）

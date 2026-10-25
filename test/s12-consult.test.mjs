@@ -7,7 +7,7 @@ const injected = []
 let counter = 0
 const sc = { async createSession(){ counter += 1; return { sessionId: 'consult-' + counter } } }
 const agents = { get: (id) => ({ id, inject: (m) => injected.push({ id, m }) }) }
-const b = new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath:'C:/Project/WatchDog/.tmp/t-c-'+Date.now()+'.json', sessionsRoot:'C:/Project/WatchDog/.tmp/fake-ws', workspaceIndex:'C:/Project/WatchDog/.tmp/fake-workspace.json', getSessionController:()=>sc, getAgents:()=>agents, log:{info(){},error(){}} })
+const b = new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath:'.tmp/t-c-'+Date.now()+'.json', sessionsRoot:'.tmp/fake-ws', workspaceIndex:'.tmp/fake-workspace.json', getSessionController:()=>sc, getAgents:()=>agents, log:{info(){},error(){}} })
 await b.start()
 const inbound = (c,id) => b.onEvent({ type:'C2C_MESSAGE_CREATE', data:{ id, content:c, author:{ user_openid:'u1' } } })
 // 直接给一个已知会话 id

@@ -67,7 +67,7 @@ function readCachedTitle(cacheRoot, id, dirName) {
 }
 
 function decodeProject(dirName) {
-  // --C-Project-WatchDog-- → C:\Project\WatchDog（尽力而为，读不懂就原样返回）
+  // --C-Project-WatchDog-- → .（尽力而为，读不懂就原样返回）
   const m = /^--(.+)--$/.exec(dirName)
   return m ? m[1].replace(/-/g, '\\') : dirName
 }

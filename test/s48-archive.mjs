@@ -9,11 +9,11 @@ const failures = []
 const check = (l, ok, d = '') => { console.log((ok ? 'PASS  ' : 'FAIL  ') + l + (d ? '  — ' + d : '')); if (!ok) failures.push(l) }
 const { Bridge } = await import('../src/app/bridge.js')
 
-const root = 'C:/Project/WatchDog/.tmp/t-archive'
+const root = '.tmp/t-archive'
 fs.rmSync(root, { recursive: true, force: true }); fs.mkdirSync(root, { recursive: true })
 const sid = 'session-eeee5555-6666'
 fs.mkdirSync(`${root}/--C-Project-WatchDog--/${sid}`, { recursive: true })
-fs.writeFileSync(`${root}/--C-Project-WatchDog--/${sid}/session.v4.jsonl`, JSON.stringify({ type: 'session', id: sid, cwd: 'C:\\Project\\WatchDog', delegationDepth: 0, agentPreset: 'standard' }))
+fs.writeFileSync(`${root}/--C-Project-WatchDog--/${sid}/session.v4.jsonl`, JSON.stringify({ type: 'session', id: sid, cwd: '.', delegationDepth: 0, agentPreset: 'standard' }))
 
 const sent = []
 const client = { on() {}, async start() {}, async stop() {}, async sendPassive(a) { sent.push(a.content); return { id: 'p' } }, async sendProactive(a) { sent.push(a.content); return { id: 'a' } } }
@@ -26,7 +26,7 @@ const wc = { async archiveSession(req) { archivedId = req.sessionId } }
 const make = (workspaceController) => new Bridge({
   appId: 'x', appSecret: 'y', allowlist: ['u1'], client,
   statePath: root + '/state-' + Date.now() + Math.random() + '.json',
-  sessionsRoot: root, workspaceRoot: 'C:\\Project\\WatchDog',
+  sessionsRoot: root, workspaceRoot: '.',
   getSessionController: () => sc, getAgents: () => agents,
   getWorkspaceController: () => workspaceController,
   log: { info() {}, error() {} },

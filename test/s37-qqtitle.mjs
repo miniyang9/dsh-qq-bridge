@@ -3,10 +3,10 @@ const failures = []
 const check = (l, ok, d = '') => { console.log((ok ? 'PASS  ' : 'FAIL  ') + l + (d ? '  — ' + d : '')); if (!ok) failures.push(l) }
 const { Bridge } = await import('../src/app/bridge.js')
 
-const root = 'C:/Project/WatchDog/.tmp/fake-qqtitle'
+const root = '.tmp/fake-qqtitle'
 fs.rmSync(root, { recursive: true, force: true }); fs.mkdirSync(root, { recursive: true })
-const idx = 'C:/Project/WatchDog/.tmp/fake-qqtitle-ws.json'
-fs.writeFileSync(idx, JSON.stringify({ tables: { workspaces: { 'ws-x': { path: 'C:\\Project\\WatchDog' } } } }))
+const idx = '.tmp/fake-qqtitle-ws.json'
+fs.writeFileSync(idx, JSON.stringify({ tables: { workspaces: { 'ws-x': { path: '.' } } } }))
 
 const sent = []
 const titles = []
@@ -16,8 +16,8 @@ const agent = { id: session.id, session, followup() {} }
 
 const b = new Bridge({
   appId: 'x', appSecret: 'y', allowlist: ['u1'], client,
-  statePath: 'C:/Project/WatchDog/.tmp/t-qqtitle-' + Date.now() + '.json',
-  sessionsRoot: root, workspaceIndex: idx, workspaceRoot: 'C:\\Project\\WatchDog',
+  statePath: '.tmp/t-qqtitle-' + Date.now() + '.json',
+  sessionsRoot: root, workspaceIndex: idx, workspaceRoot: '.',
   getSessionController: () => ({ async create() { return { sessionId: session.id } } }),
   getAgents: () => ({ get: () => agent }),
   log: { info() {}, error() {} },

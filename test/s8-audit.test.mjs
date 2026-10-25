@@ -32,7 +32,7 @@ check(isEvent(ev) === true, 'isEvent 认可')
 check(isEvent({}) === false, 'isEvent 拒绝普通对象')
 
 // --- Audit ---
-const TMP = path.join('C:/Project/WatchDog/.tmp/s8')
+const TMP = path.join('.tmp/s8')
 fs.rmSync(TMP, { recursive: true, force: true })
 fs.mkdirSync(TMP, { recursive: true })
 const file = path.join(TMP, 'audit.jsonl')

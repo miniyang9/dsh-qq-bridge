@@ -2,7 +2,7 @@
 const failures = []
 const check = (ok,label,detail='') => { console.log((ok?'PASS  ':'FAIL  ')+label+(detail?'  — '+detail:'')); if(!ok) failures.push(label) }
 const { Bridge } = await import('../src/app/bridge.js')
-const root = 'C:/Project/WatchDog/.tmp/fake-hidden'; fs.rmSync(root,{recursive:true,force:true})
+const root = '.tmp/fake-hidden'; fs.rmSync(root,{recursive:true,force:true})
 fs.mkdirSync(root + '/--C-Project--/sess-user1', { recursive: true })
 fs.writeFileSync(root + '/--C-Project--/sess-user1/session.v4.jsonl', JSON.stringify({ type:'session', id:'sess-user1', cwd:'C:/Project', delegationDepth:0, agentPreset:'standard' }))
 const sent = []
@@ -10,7 +10,7 @@ const client = { on(){}, async start(){}, async stop(){}, async sendPassive(a){ 
 let n = 0
 const sc = { async createSession(){ n += 1; return { sessionId: 'consult-' + n } } }
 const agents = { get: (id) => ({ id, inject(){} }) }
-const statePath = 'C:/Project/WatchDog/.tmp/t-hidden-' + Date.now() + '.json'
+const statePath = '.tmp/t-hidden-' + Date.now() + '.json'
 const b = new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath, sessionsRoot: root, getSessionController:()=>sc, getAgents:()=>agents, log:{info(){},error(){}} })
 await b.start()
 const inbound = (c,id) => b.onEvent({ type:'C2C_MESSAGE_CREATE', data:{ id, content:c, author:{ user_openid:'u1' } } })

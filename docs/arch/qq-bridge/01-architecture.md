@@ -124,7 +124,7 @@ L2 路径图是**目标态**，尚未实现（见 §9 债 4）。
 ## 落盘形状（按真实文件重写）
 
 ```
-C:\Project\WatchDog\
+
 ├─ package.json                # dsh-qq-bridge，ESM，无构建（ADR-17）
 ├─ cordis.patch.yml            # insert: { id: qq-bridge, name: dsh-qq-bridge }
 ├─ lib/index.js                # 插件入口：注册两条接缝、装配 Bridge

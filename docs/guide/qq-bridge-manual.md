@@ -39,7 +39,7 @@
 ## 3. 安装
 
 ```powershell
-dsh plugin --profile desktop add C:\Project\WatchDog
+dsh plugin --profile desktop add .
 ```
 
 然后在该 profile 的 `cordis.patch.yml` 里追加：

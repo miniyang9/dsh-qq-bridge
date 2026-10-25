@@ -10,7 +10,7 @@ check('/ans wp-1 1 → 选项 1', parseCommand('/ans wp-1 1').index === 1)
 check('/ans wp-1 这是文本 → 文本答复', parseCommand('/ans wp-1 这是文本').kind === 'answerText')
 
 // 2) /say 注入后把回复带回来
-const root = 'C:/Project/WatchDog/.tmp/fake-relay'
+const root = '.tmp/fake-relay'
 fs.rmSync(root, { recursive: true, force: true })
 fs.mkdirSync(root + '/--C-Project--/session-dd94c595-1111', { recursive: true })
 fs.writeFileSync(root + '/--C-Project--/session-dd94c595-1111/session.v4.jsonl', JSON.stringify({ type: 'session', id: 'session-dd94c595-1111', cwd: 'C:/Project', delegationDepth: 0 }))
@@ -21,7 +21,7 @@ const client = { on() {}, async start() {}, async stop() {}, async sendPassive(a
 const session = { id: 'session-dd94c595-1111', seq: 0, eventAt: () => null }
 const agent = { id: 'session-dd94c595-1111', session, inject: (m) => injected.push(m) }
 
-const b = new Bridge({ appId: 'x', appSecret: 'y', allowlist: ['u1'], client, statePath: 'C:/Project/WatchDog/.tmp/t-relay-' + Date.now() + '.json', sessionsRoot: root, log: { info() {}, error() {} } })
+const b = new Bridge({ appId: 'x', appSecret: 'y', allowlist: ['u1'], client, statePath: '.tmp/t-relay-' + Date.now() + '.json', sessionsRoot: root, log: { info() {}, error() {} } })
 await b.start()
 b.bindAgent(agent)
 

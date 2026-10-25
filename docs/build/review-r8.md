@@ -92,7 +92,7 @@ s44 补上的是"原来只有人看代码才能发现"的那一半，没有和�
 
 ## 实际基线
 
-任务指定的 `C:\Users\95878\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe`（v24.21.0）。
+任务指定的 `C:\Users\<user>\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe`（v24.21.0）。
 `test\*.mjs` 共 **49** 个，排除 `s1-waterfall.test.mjs`、`s3-loop.mjs` 后 **47 套逐套单跑**
 （每次独立进程；统计行首 `^PASS` / `^FAIL` 行数并核对退出码）：
 
@@ -196,7 +196,7 @@ s44 与我的探针用的都是这份 args，落盘审计里也是 `"reason":"es
 ## 复跑方式
 
 ```
-$node = C:\Users\95878\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe
+$node = C:\Users\<user>\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe
 逐个单跑 test\*.mjs（排除 s1-waterfall.test.mjs、s3-loop.mjs）
   → 47/47 绿，405 PASS / 0 FAIL
 $node .tmp\r8\regress.mjs

@@ -11,14 +11,14 @@ const failures = []
 const check = (l, ok, d = '') => { console.log((ok ? 'PASS  ' : 'FAIL  ') + l + (d ? '  — ' + d : '')); if (!ok) failures.push(l) }
 const { Bridge } = await import('../src/app/bridge.js')
 
-const root = 'C:/Project/WatchDog/.tmp/t-consult-ws'
+const root = '.tmp/t-consult-ws'
 fs.rmSync(root, { recursive: true, force: true }); fs.mkdirSync(root, { recursive: true })
 const sessionId = 'session-cccc3333-4444'
 fs.mkdirSync(`${root}/--C-Project-WatchDog--/${sessionId}`, { recursive: true })
-fs.writeFileSync(`${root}/--C-Project-WatchDog--/${sessionId}/session.v4.jsonl`, JSON.stringify({ type: 'session', id: sessionId, cwd: 'C:\\Project\\WatchDog', delegationDepth: 0, agentPreset: 'standard' }))
+fs.writeFileSync(`${root}/--C-Project-WatchDog--/${sessionId}/session.v4.jsonl`, JSON.stringify({ type: 'session', id: sessionId, cwd: '.', delegationDepth: 0, agentPreset: 'standard' }))
 
-const idx = 'C:/Project/WatchDog/.tmp/t-consult-ws.json'
-fs.writeFileSync(idx, JSON.stringify({ tables: { workspaces: { 'ws-watchdog': { path: 'C:\\Project\\WatchDog' } } } }))
+const idx = '.tmp/t-consult-ws.json'
+fs.writeFileSync(idx, JSON.stringify({ tables: { workspaces: { 'ws-watchdog': { path: '.' } } } }))
 
 const sent = []
 const client = { on() {}, async start() {}, async stop() {}, async sendPassive(a) { sent.push(a.content); return { id: 'p' } }, async sendProactive(a) { sent.push(a.content); return { id: 'a' } } }
@@ -32,8 +32,8 @@ const agents = { get: (id) => ({ id, session: id === consultSession.id ? consult
 
 const b = new Bridge({
   appId: 'x', appSecret: 'y', allowlist: ['u1'], client,
-  statePath: 'C:/Project/WatchDog/.tmp/t-consult-ws-state-' + Date.now() + '.json',
-  sessionsRoot: root, workspaceIndex: idx, workspaceRoot: 'C:\\Project\\WatchDog',
+  statePath: '.tmp/t-consult-ws-state-' + Date.now() + '.json',
+  sessionsRoot: root, workspaceIndex: idx, workspaceRoot: '.',
   getSessionController: () => sc, getAgents: () => agents,
   log: { info() {}, error() {} },
 })

@@ -27,7 +27,7 @@ function makeBridge() {
     async sendPassive(a) { sent.push(a.content); return { id: 'x' } },
     async sendProactive(a) { sent.push(a.content); return { id: 'y' } },
   }
-  const bridge = new Bridge({ appId: 'x', appSecret: 'y', allowlist: ['u1'], client, statePath: `C:/Project/WatchDog/.tmp/t-label-${Date.now()}-${Math.random()}.json`, log: { info() {}, error() {} } })
+  const bridge = new Bridge({ appId: 'x', appSecret: 'y', allowlist: ['u1'], client, statePath: `.tmp/t-label-${Date.now()}-${Math.random()}.json`, log: { info() {}, error() {} } })
   return { bridge, sent }
 }
 

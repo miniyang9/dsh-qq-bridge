@@ -3,11 +3,11 @@ const failures = []
 const check = (l, ok, d = '') => { console.log((ok ? 'PASS  ' : 'FAIL  ') + l + (d ? '  — ' + d : '')); if (!ok) failures.push(l) }
 const { Bridge } = await import('../src/app/bridge.js')
 
-const root = 'C:/Project/WatchDog/.tmp/fake-title'
+const root = '.tmp/fake-title'
 fs.rmSync(root, { recursive: true, force: true })
 fs.mkdirSync(root, { recursive: true })
-const idx = 'C:/Project/WatchDog/.tmp/fake-title-ws.json'
-fs.writeFileSync(idx, JSON.stringify({ tables: { workspaces: { w1: { path: 'C:\\Project\\WatchDog' } } } }))
+const idx = '.tmp/fake-title-ws.json'
+fs.writeFileSync(idx, JSON.stringify({ tables: { workspaces: { w1: { path: '.' } } } }))
 
 const sent = []
 const appended = []
@@ -17,8 +17,8 @@ const agent = { id: session.id, session }
 
 const b = new Bridge({
   appId: 'x', appSecret: 'y', allowlist: ['u1'], client,
-  statePath: 'C:/Project/WatchDog/.tmp/t-title-' + Date.now() + '.json',
-  sessionsRoot: root, workspaceIndex: idx, workspaceRoot: 'C:\\Project\\WatchDog',
+  statePath: '.tmp/t-title-' + Date.now() + '.json',
+  sessionsRoot: root, workspaceIndex: idx, workspaceRoot: '.',
   getSessionController: () => ({ async create() { return { sessionId: session.id } } }),
   getAgents: () => ({ get: (id) => (id === session.id ? agent : null) }),
   log: { info() {}, error() {} },
@@ -35,8 +35,8 @@ check('回话仍然成功', (sent.at(-1) ?? '').includes('已在'), sent.at(-1))
 // append 不存在时不得搞崩流程
 const b2 = new Bridge({
   appId: 'x', appSecret: 'y', allowlist: ['u1'], client,
-  statePath: 'C:/Project/WatchDog/.tmp/t-title2-' + Date.now() + '.json',
-  sessionsRoot: root, workspaceIndex: idx, workspaceRoot: 'C:\\Project\\WatchDog',
+  statePath: '.tmp/t-title2-' + Date.now() + '.json',
+  sessionsRoot: root, workspaceIndex: idx, workspaceRoot: '.',
   getSessionController: () => ({ async create() { return { sessionId: 'session-noappend' } } }),
   getAgents: () => ({ get: () => ({ id: 'session-noappend', session: { id: 'session-noappend', seq: 0, eventAt: () => null } }) }),
   log: { info() {}, error() {} },

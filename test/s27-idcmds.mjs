@@ -3,13 +3,13 @@ const failures = []
 const check = (label, ok, detail = '') => { console.log((ok ? 'PASS  ' : 'FAIL  ') + label + (detail ? '  — ' + detail : '')); if (!ok) failures.push(label) }
 
 const { Bridge } = await import('../src/app/bridge.js')
-const root = 'C:/Project/WatchDog/.tmp/fake-ids'
+const root = '.tmp/fake-ids'
 fs.rmSync(root, { recursive: true, force: true })
 const ids = ['session-dd94c595-1111', 'session-aaaa2222-3333']
 for (const id of ids) {
   const d = root + '/--C-Project-WatchDog--/' + id
   fs.mkdirSync(d, { recursive: true })
-  fs.writeFileSync(d + '/session.v4.jsonl', JSON.stringify({ type: 'session', id, cwd: 'C:\\Project\\WatchDog', delegationDepth: 0, agentPreset: 'standard' }))
+  fs.writeFileSync(d + '/session.v4.jsonl', JSON.stringify({ type: 'session', id, cwd: '.', delegationDepth: 0, agentPreset: 'standard' }))
 }
 
 const sent = []
@@ -24,8 +24,8 @@ const agents = { get: (id) => mkAgent(id) }
 
 const b = new Bridge({
   appId: 'x', appSecret: 'y', allowlist: ['u1'], client,
-  statePath: 'C:/Project/WatchDog/.tmp/t-ids-' + Date.now() + '.json',
-  sessionsRoot: root, workspaceRoot: 'C:\\Project\\WatchDog',
+  statePath: '.tmp/t-ids-' + Date.now() + '.json',
+  sessionsRoot: root, workspaceRoot: '.',
   getSessionController: () => sc, getAgents: () => agents,
   log: { info() {}, error() {} },
 })

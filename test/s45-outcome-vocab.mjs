@@ -15,7 +15,7 @@ check('yes → allowed-once', outcomeFromVote('yes') === 'allowed-once', outcome
 check('批准 → allowed-once', outcomeFromVote('批准') === 'allowed-once', outcomeFromVote('批准'))
 check('拒绝 → rejected', outcomeFromVote('拒绝') === 'rejected', outcomeFromVote('拒绝'))
 
-const dir = 'C:/Project/WatchDog/.tmp/t-vocab'
+const dir = '.tmp/t-vocab'
 const fs = await import('node:fs')
 fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true })
 const sent = []

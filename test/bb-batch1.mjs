@@ -24,8 +24,8 @@ function makeBridge(opts = {}) {
   }
   const b = new Bridge({
     appId: 'x', appSecret: 'y', allowlist: ['u1'], client,
-    statePath: `C:/Project/WatchDog/.tmp/bb-${Date.now()}-${Math.random()}.json`,
-    sessionsRoot: 'C:/Project/WatchDog/.tmp/fake-none',
+    statePath: `.tmp/bb-${Date.now()}-${Math.random()}.json`,
+    sessionsRoot: '.tmp/fake-none',
     log: { info() {}, error() {} },
     ...opts,
   })
@@ -98,5 +98,5 @@ function makeBridge(opts = {}) {
 
 const fail = results.filter((r) => !r.ok)
 console.log(`\n${fail.length === 0 ? 'BATCH-1 PASS' : 'BATCH-1 FAIL'}  (${results.length - fail.length}/${results.length})`)
-fs.writeFileSync('C:/Project/WatchDog/.tmp/bb-batch1.json', JSON.stringify(results, null, 2))
+fs.writeFileSync('.tmp/bb-batch1.json', JSON.stringify(results, null, 2))
 process.exit(fail.length === 0 ? 0 : 1)

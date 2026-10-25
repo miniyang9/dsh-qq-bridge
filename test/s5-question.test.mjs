@@ -21,7 +21,7 @@ function makeBridge() {
   }
   const bridge = new Bridge({
     appId: 'x', appSecret: 'y', allowlist: ['u1'], client,
-    statePath: `C:/Project/WatchDog/.tmp/t-q-${Date.now()}-${Math.random()}.json`,
+    statePath: `.tmp/t-q-${Date.now()}-${Math.random()}.json`,
     log: { info() {}, error() {} },
   })
   return { bridge, sent }

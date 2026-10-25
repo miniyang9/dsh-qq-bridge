@@ -25,7 +25,7 @@ check('对方未结算 → cancelled', decisionFromOther({ status: 'dropped' }) 
 check('对方为 null → cancelled', decisionFromOther(null) === 'cancelled')
 
 // ---------- 3) 端到端：/yes 与 /ans 1 应得到同一结局 ----------
-const dir = 'C:/Project/WatchDog/.tmp/t-lock2'
+const dir = '.tmp/t-lock2'
 fs.rmSync(dir, { recursive: true, force: true }); fs.mkdirSync(dir, { recursive: true })
 const mk = (tag) => {
   const sent = []

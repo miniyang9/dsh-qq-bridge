@@ -6,7 +6,7 @@ const client = { on(){}, async start(){}, async stop(){}, async sendPassive(a){s
 const events = [ {type:'turn/start'}, {type:'tool/call', data:{name:'fs.write'}}, {type:'assistant/message', data:{}} ]
 const session = { id:'sess-p1', seq: events.length, eventAt: (i)=>events[i] }
 const agent = { id:'sess-p1', session, inject(){} }
-const b = new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath:'C:/Project/WatchDog/.tmp/t-p-'+Date.now()+'.json', sessionsRoot:'C:/Project/WatchDog/.tmp/fake-none', getAgents:()=>null, getSessionController:()=>null, log:{info(){},error(){}} })
+const b = new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath:'.tmp/t-p-'+Date.now()+'.json', sessionsRoot:'.tmp/fake-none', getAgents:()=>null, getSessionController:()=>null, log:{info(){},error(){}} })
 await b.start()
 const inbound = (c,id) => b.onEvent({ type:'C2C_MESSAGE_CREATE', data:{ id, content:c, author:{user_openid:'u1'} } })
 await inbound('/progress','m0')

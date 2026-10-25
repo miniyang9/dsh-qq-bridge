@@ -91,7 +91,7 @@ PROBE mt-yes audit = {"requestId":"C-mt-yes","wpId":"wp-1","openid":"u1","at":�
 
 ## 实际基线
 
-任务指定的 `C:\Users\95878\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe`（v24.21.0），
+任务指定的 `C:\Users\<user>\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe`（v24.21.0），
 `test\*.mjs` 共 48 个，排除 `s1-waterfall.test.mjs`、`s3-loop.mjs` 后 **46 套逐套单跑**（每次独立进程，
 用 `Start-Process`/逐进程调用并统计 `^PASS`、`^FAIL` 行，同时核对退出码）：
 
@@ -152,7 +152,7 @@ s40-question-next 6、s41-audit-conservation 9、s42-race 9、**s43-vote-map 14*
 ## 复跑方式
 
 ```
-$node = C:\Users\95878\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe
+$node = C:\Users\<user>\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe
 逐个单跑 test\*.mjs（排除 s1-waterfall.test.mjs、s3-loop.mjs）→ 46/46 绿，399 PASS / 0 FAIL
 $node .tmp\r7\probe.mjs   → mtYes / mtLabeledYes / mtAns1 / mtNo / guiOnly / phoneFirstYes
 $node .tmp\r7\regress.mjs → /ans 1 / /no / /say / /why / 通知 / 双通道（25 条）

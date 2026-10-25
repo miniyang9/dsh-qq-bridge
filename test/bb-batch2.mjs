@@ -24,8 +24,8 @@ function makeBridge(opts = {}) {
   }
   const b = new Bridge({
     appId: 'x', appSecret: 'y', allowlist: ['u1'], client,
-    statePath: `C:/Project/WatchDog/.tmp/bb2-${Date.now()}-${Math.random()}.json`,
-    sessionsRoot: 'C:/Project/WatchDog/.tmp/fake-none',
+    statePath: `.tmp/bb2-${Date.now()}-${Math.random()}.json`,
+    sessionsRoot: '.tmp/fake-none',
     log: { info() {}, error() {} },
     ...opts,
   })
@@ -47,10 +47,10 @@ function makeBridge(opts = {}) {
 
 // ---------- BB-18：/new 非法路径 ----------
 {
-  const ws = 'C:/Project/WatchDog/.tmp/fake-ws3'
+  const ws = '.tmp/fake-ws3'
   fs.rmSync(ws, { recursive: true, force: true }); fs.mkdirSync(ws, { recursive: true })
-  const idx = 'C:/Project/WatchDog/.tmp/fake-ws3.json'
-  fs.writeFileSync(idx, JSON.stringify({ tables: { workspaces: { 'w1': { path: 'C:\\Project\\WatchDog' } } } }))
+  const idx = '.tmp/fake-ws3.json'
+  fs.writeFileSync(idx, JSON.stringify({ tables: { workspaces: { 'w1': { path: '.' } } } }))
   let created = 0
   const { b, sent, inbound } = makeBridge({
     workspaceIndex: idx,
@@ -90,5 +90,5 @@ function makeBridge(opts = {}) {
 
 const fail = results.filter((r) => !r.ok)
 console.log(`\n${fail.length === 0 ? 'BATCH-2 PASS' : 'BATCH-2 FAIL'}  (${results.length - fail.length}/${results.length})`)
-fs.writeFileSync('C:/Project/WatchDog/.tmp/bb-batch2.json', JSON.stringify(results, null, 2))
+fs.writeFileSync('.tmp/bb-batch2.json', JSON.stringify(results, null, 2))
 process.exit(fail.length === 0 ? 0 : 1)

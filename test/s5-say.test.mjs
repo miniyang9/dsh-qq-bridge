@@ -26,7 +26,7 @@ function makeBridge() {
   }
   const bridge = new Bridge({
     appId: 'x', appSecret: 'y', allowlist: ['u1'], client,
-    statePath: `C:/Project/WatchDog/.tmp/t-say-${Date.now()}-${Math.random()}.json`,
+    statePath: `.tmp/t-say-${Date.now()}-${Math.random()}.json`,
     log: { info() {}, error() {} },
   })
   return { bridge, sent, injected, agent }

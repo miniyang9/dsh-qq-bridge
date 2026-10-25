@@ -22,7 +22,7 @@
 
 ## 基线
 
-任务指定的 `C:\Users\95878\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe`（v24.21.0）。
+任务指定的 `C:\Users\<user>\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe`（v24.21.0）。
 `test\*.mjs` 共 **49** 个，排除 `s1-waterfall.test.mjs`、`s3-loop.mjs` 后 **47 套逐套单跑**
 （每套独立进程；统计行首 `^PASS` / `^FAIL` 行数并核对退出码）。
 
@@ -175,7 +175,7 @@ s43-vote-map 14  s44-callsite 6
 ## 复跑方式
 
 ```
-$node = C:\Users\95878\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe
+$node = C:\Users\<user>\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe
 逐个单跑 test\*.mjs（排除 s1-waterfall.test.mjs、s3-loop.mjs）
   → 两次均 47/47 绿、405 PASS / 0 FAIL
 $node .tmp\r9\probe-yes-late.mjs   → 真 drop()=false 的迟到分支，9/9 PASS

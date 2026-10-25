@@ -10,7 +10,7 @@
  */
 import { pathToFileURL } from 'node:url';
 
-const ASAR = 'C:/Users/95878/AppData/Local/Programs/DeepSeek Harness/resources/app.asar/dsh/node_modules/@deepseek-ai';
+const ASAR = '/home/<user>/AppData/Local/Programs/DeepSeek Harness/resources/app.asar/dsh/node_modules/@deepseek-ai';
 const cordisUrl = pathToFileURL(`${ASAR}/cordis/lib/index.js`).href;
 
 const failures = [];
@@ -20,7 +20,7 @@ function check(ok, label, detail = '') {
 }
 
 const { Context } = await import(cordisUrl);
-const plugin = await import(pathToFileURL('C:/Project/WatchDog/lib/index.js').href);
+const plugin = await import(pathToFileURL('lib/index.js').href);
 
 const ctx = new Context();
 plugin.apply(ctx, { s1DefaultOutcome: 'rejected' });

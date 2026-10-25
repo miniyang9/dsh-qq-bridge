@@ -1,12 +1,12 @@
 ﻿import fs from 'node:fs'
 const failures=[]; const check=(l,ok,d='')=>{console.log((ok?'PASS  ':'FAIL  ')+l+(d?'  — '+d:''));if(!ok)failures.push(l)}
 const { Bridge } = await import('../src/app/bridge.js')
-const root='C:/Project/WatchDog/.tmp/fake-say'; fs.rmSync(root,{recursive:true,force:true})
-for (const id of ['session-dd94c595-1111']) { const d=root+'/--C-Project-WatchDog--/'+id; fs.mkdirSync(d,{recursive:true}); fs.writeFileSync(d+'/session.v4.jsonl', JSON.stringify({type:'session',id,cwd:'C:\\Project\\WatchDog',delegationDepth:0,agentPreset:'standard'})) }
+const root='.tmp/fake-say'; fs.rmSync(root,{recursive:true,force:true})
+for (const id of ['session-dd94c595-1111']) { const d=root+'/--C-Project-WatchDog--/'+id; fs.mkdirSync(d,{recursive:true}); fs.writeFileSync(d+'/session.v4.jsonl', JSON.stringify({type:'session',id,cwd:'.',delegationDepth:0,agentPreset:'standard'})) }
 const sent=[]; const injected=[]
 const client={on(){},async start(){},async stop(){},async sendPassive(a){sent.push(a.content);return{id:'p'}},async sendProactive(a){sent.push(a.content);return{id:'a'}}}
 const mk=(id)=>({id,session:{id,seq:0,eventAt:()=>null},inject:m=>injected.push({id,m})})
-const b=new Bridge({appId:'x',appSecret:'y',allowlist:['u1'],client,statePath:'C:/Project/WatchDog/.tmp/t-say-'+Date.now()+'.json',sessionsRoot:root,getSessionController:()=>({async resolveAgent(id){return{agent:mk(id)}}}),log:{info(){},error(){}}})
+const b=new Bridge({appId:'x',appSecret:'y',allowlist:['u1'],client,statePath:'.tmp/t-say-'+Date.now()+'.json',sessionsRoot:root,getSessionController:()=>({async resolveAgent(id){return{agent:mk(id)}}}),log:{info(){},error(){}}})
 await b.start(); b.bindAgent(mk('session-dd94c595-1111'))
 const inbound=(c,id)=>b.onEvent({type:'C2C_MESSAGE_CREATE',data:{id,content:c,author:{user_openid:'u1'}}})
 

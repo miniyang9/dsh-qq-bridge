@@ -2,14 +2,14 @@
 const failures = []
 const check = (ok, label, detail='') => { console.log((ok?'PASS  ':'FAIL  ')+label+(detail?'  — '+detail:'')); if(!ok) failures.push(label) }
 const { Bridge } = await import('../src/app/bridge.js')
-const root = 'C:/Project/WatchDog/.tmp/fake-ws2'; fs.rmSync(root,{recursive:true,force:true}); fs.mkdirSync(root,{recursive:true})
-const wsIndex = 'C:/Project/WatchDog/.tmp/fake-workspace.json'
-fs.writeFileSync(wsIndex, JSON.stringify({ tables: { workspaces: { 'ws-1': { path: 'C:\\Project\\WatchDog' }, 'ws-2': { path: 'C:\\Other' } } } }))
+const root = '.tmp/fake-ws2'; fs.rmSync(root,{recursive:true,force:true}); fs.mkdirSync(root,{recursive:true})
+const wsIndex = '.tmp/fake-workspace.json'
+fs.writeFileSync(wsIndex, JSON.stringify({ tables: { workspaces: { 'ws-1': { path: '.' }, 'ws-2': { path: 'C:\\Other' } } } }))
 const sent = []; let created = []
 const client = { on(){}, async start(){}, async stop(){}, async sendPassive(a){sent.push(a.content);return{id:'p'}}, async sendProactive(a){sent.push(a.content);return{id:'a'}} }
 const sc = { async create(req) { created.push(req.workspaceId ?? req.cwd); return { sessionId: 'sess-new-1' } } }
-const mk = (opts={}) => new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath: opts.statePath ?? 'C:/Project/WatchDog/.tmp/t-new-RANDOM.json', sessionsRoot: root, workspaceIndex: wsIndex, getSessionController: () => sc, getAgents: () => null, maxNewPerWorkspacePerDay: 3, log:{info(){},error(){}} })
-const shared = 'C:/Project/WatchDog/.tmp/t-new-' + Date.now() + '.json'
+const mk = (opts={}) => new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath: opts.statePath ?? '.tmp/t-new-RANDOM.json', sessionsRoot: root, workspaceIndex: wsIndex, getSessionController: () => sc, getAgents: () => null, maxNewPerWorkspacePerDay: 3, log:{info(){},error(){}} })
+const shared = '.tmp/t-new-' + Date.now() + '.json'
 const b = mk({ statePath: shared })
 await b.start()
 await b.onEvent({ type:'C2C_MESSAGE_CREATE', data:{ id:'m1', content:'/new', author:{ user_openid:'u1' } } })

@@ -15,7 +15,7 @@ function check(ok, label, detail = '') {
 const { Bridge } = await import('../src/app/bridge.js')
 const { JsonStore } = await import('../src/core/store.js')
 
-const TMP = path.join('C:/Project/WatchDog/.tmp/s4')
+const TMP = path.join('.tmp/s4')
 fs.rmSync(TMP, { recursive: true, force: true })
 fs.mkdirSync(TMP, { recursive: true })
 

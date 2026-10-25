@@ -12,12 +12,12 @@
 import fs from 'node:fs'
 
 const kv = {}
-for (const line of fs.readFileSync('C:/Project/WatchDog/.env', 'utf8').split(/\r?\n/)) {
+for (const line of fs.readFileSync('.env', 'utf8').split(/\r?\n/)) {
   const m = /^\s*([A-Za-z0-9_]+)\s*=\s*(.*)\s*$/.exec(line)
   if (m) kv[m[1]] = m[2].replace(/^["']|["']$/g, '')
 }
 
-const { Bridge } = await import('file:///C:/Project/WatchDog/src/app/bridge.js')
+const { Bridge } = await import('file:///src/app/bridge.js')
 
 const bridge = new Bridge({
   appId: kv.AppID,

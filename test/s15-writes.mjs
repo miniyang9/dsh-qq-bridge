@@ -6,11 +6,11 @@ check(writeTargetOf('fs.write', '{"path":"a.ts"}')?.path === 'a.ts', '认出写�
 check(writeTargetOf('fs.read', '{}') === null, '读工具不算写')
 const sent = []
 const client = { on(){}, async start(){}, async stop(){}, async sendPassive(a){sent.push(a.content);return{id:'p'}}, async sendProactive(a){sent.push(a.content);return{id:'a'}} }
-const statePath = 'C:/Project/WatchDog/.tmp/t-w-'+Date.now()+'.json'
+const statePath = '.tmp/t-w-'+Date.now()+'.json'
 let n = 0
 const sc = { async createSession(){ n+=1; return { sessionId:'consult-'+n } } }
 const agents = { get:(id)=>({ id, inject(){} }) }
-const b = new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath, sessionsRoot:'C:/Project/WatchDog/.tmp/fake-none', getSessionController:()=>sc, getAgents:()=>agents, log:{info(){},error(){}} })
+const b = new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath, sessionsRoot:'.tmp/fake-none', getSessionController:()=>sc, getAgents:()=>agents, log:{info(){},error(){}} })
 await b.start()
 await b.onEvent({ type:'C2C_MESSAGE_CREATE', data:{ id:'m1', content:'/why sess-x 改一下看看', author:{user_openid:'u1'} } })
 const entry = [...b.consults.values()][0]

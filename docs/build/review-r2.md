@@ -81,7 +81,7 @@ B2 / B4 / B5 / B6 已关闭（B4、B2 留有非阻断残留，见 §复核附录
 ### 复跑方式
 
 ```
-$node = C:\Users\95878\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe
+$node = C:\Users\<user>\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe
 逐个执行 test\*.mjs（排除 s1-waterfall.test.mjs、s3-loop.mjs）→ 40 通过 / 2 失败
 $node .tmp\r2-probe.mjs → 见正文 PROBE 行
 ```

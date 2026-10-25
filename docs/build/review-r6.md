@@ -140,7 +140,7 @@ src/app/bridge.js` 还原，工作树 blob `815cfbe49da2744f145282257423b665f6de
 
 ## 实际基线
 
-用任务指定的 `C:\Users\95878\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe`
+用任务指定的 `C:\Users\<user>\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe`
 （v24.21.0），`test\*.mjs` 共 47 个，排除 `s1-waterfall.test.mjs`、`s3-loop.mjs` 后 **45 套**逐套单跑
 （每次独立进程；`spawnSync` 的管道在本沙箱不可用，改用 PowerShell 逐进程调用并统计 `^PASS/^FAIL`）：
 
@@ -192,7 +192,7 @@ s40-question-next 6、s41-audit-conservation 9、**s42-race 9**。
 ## 复跑方式
 
 ```
-$node = C:\Users\95878\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe
+$node = C:\Users\<user>\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe
 逐个单跑 test\*.mjs（排除 s1-waterfall.test.mjs、s3-loop.mjs）→ 45/45 绿，385 PASS / 0 FAIL
 $node .tmp\r6-probe2.mjs   → A.* / Q.* / S.mt.no / S.mt.yes / S.q.mt（本轮时序矩阵与压力）
 $node .tmp\r6-labeled.mjs  → LABELED.mt.yes

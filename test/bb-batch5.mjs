@@ -12,17 +12,17 @@ const check = (id, ok, label, detail = '') => {
 
 const { Bridge } = await import('../src/app/bridge.js')
 
-const ROOT = 'C:/Project/WatchDog/.tmp/bb5-sessions'
-const IDX = 'C:/Project/WatchDog/.tmp/bb5-ws.json'
+const ROOT = '.tmp/bb5-sessions'
+const IDX = '.tmp/bb5-ws.json'
 
 function seedSessions(specs) {
   fs.rmSync(ROOT, { recursive: true, force: true })
   for (const s of specs) {
     const dir = `${ROOT}/--C-Project-WatchDog--/${s.id}`
     fs.mkdirSync(dir, { recursive: true })
-    fs.writeFileSync(`${dir}/session.v4.jsonl`, JSON.stringify({ type: 'session', id: s.id, cwd: 'C:\\Project\\WatchDog', delegationDepth: 0, agentPreset: 'standard' }))
+    fs.writeFileSync(`${dir}/session.v4.jsonl`, JSON.stringify({ type: 'session', id: s.id, cwd: '.', delegationDepth: 0, agentPreset: 'standard' }))
   }
-  fs.writeFileSync(IDX, JSON.stringify({ global: { archivedSessionIds: [] }, tables: { workspaces: { w1: { path: 'C:\\Project\\WatchDog' } } } }))
+  fs.writeFileSync(IDX, JSON.stringify({ global: { archivedSessionIds: [] }, tables: { workspaces: { w1: { path: '.' } } } }))
 }
 
 function makeBridge(extra = {}) {
@@ -34,8 +34,8 @@ function makeBridge(extra = {}) {
   }
   const b = new Bridge({
     appId: 'x', appSecret: 'y', allowlist: ['u1'], client,
-    statePath: `C:/Project/WatchDog/.tmp/bb5-${Date.now()}-${Math.random()}.json`,
-    sessionsRoot: ROOT, workspaceIndex: IDX, workspaceRoot: 'C:\\Project\\WatchDog',
+    statePath: `.tmp/bb5-${Date.now()}-${Math.random()}.json`,
+    sessionsRoot: ROOT, workspaceIndex: IDX, workspaceRoot: '.',
     log: { info() {}, error() {} }, ...extra,
   })
   const inbound = (content, id) => b.onEvent({ type: 'C2C_MESSAGE_CREATE', data: { id, content, author: { user_openid: 'u1' } } })
@@ -161,5 +161,5 @@ const agent = (sid, extra = {}) => ({ id: sid, session: { id: sid, seq: 0, event
 
 const fail = results.filter((r) => !r.ok)
 console.log(`\n${fail.length === 0 ? 'BATCH-5 PASS' : 'BATCH-5 FAIL'}  (${results.length - fail.length}/${results.length})`)
-fs.writeFileSync('C:/Project/WatchDog/.tmp/bb-batch5.json', JSON.stringify(results, null, 2))
+fs.writeFileSync('.tmp/bb-batch5.json', JSON.stringify(results, null, 2))
 process.exit(fail.length === 0 ? 0 : 1)

@@ -7,8 +7,8 @@ const sent = []
 const client = { on() {}, async start() {}, async stop() {}, async sendPassive(a) { sent.push(a.content); return { id: 'p' } }, async sendProactive(a) { sent.push(a.content); return { id: 'a' } } }
 const mk = (opts = {}) => new Bridge({
   appId: 'x', appSecret: 'y', allowlist: ['u1'], client,
-  statePath: 'C:/Project/WatchDog/.tmp/t-dual-' + Date.now() + Math.random() + '.json',
-  sessionsRoot: 'C:/Project/WatchDog/.tmp/fake-none',
+  statePath: '.tmp/t-dual-' + Date.now() + Math.random() + '.json',
+  sessionsRoot: '.tmp/fake-none',
   log: { info() {}, error() {} }, ...opts,
 })
 const req = { agent: { session: { id: 's' } }, toolName: 'fs.read', callId: 'c', args: {} }

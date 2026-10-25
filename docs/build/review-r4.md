@@ -34,7 +34,7 @@ HEAD = `89165be`（`fix(r3): B1/B3/B4/N1/N3/N4 + 新增 s40 覆盖提问 next`�
 |---|---|---|
 | **B4** `const guiAnswers` 重赋值 / 传 `next` 时提问通道 | **已关闭** | `bridge.js:1301-1306` 拆成 `const rawAnswers` + `const guiAnswers`，不再重赋值。三种时序实跑（`PROBE A.*`）：<br>· QQ 先答（GUI 永不回）：`A.B4.qqFirst.threw = null`、`return = {"answers":[{"id":"q1","selected":["A"],"by":"u1"}]}`、待答点 `resolved`、审计 1 条。R2/R3 的 `TypeError: Assignment to constant variable` 不再出现。<br>· GUI 先答：`A.B4.guiFirst.threw = null`、`return = {"answers":[{"id":"q1","selected":["B"]}]}`、待答点 `dropped`、审计 1 条 `via:gui`、手机收到 1 条"已在电脑端答复"。<br>· 两边都答：见 N2（返回 GUI 那票、只结算一次，但审计 2 条）。<br>另验两条边界：GUI 回 `'unavailable'`（F3 瀑布兜底）→ `A.B4.guiUnavailable.pointBeforeQq = "open"`，随后手机 `/ans` 仍生效；GUI 回 `{answers:[]}` → `A.B4.emptyAnswers.pointBeforeQq = "open"`，`/ans` 仍生效（N6 未复活）。 |
 | **N1** 提问侧 GUI 胜出后落盘 | **已关闭** | `bridge.js:1310` 补了 `await this.#persist()`（与审批 :1211 一致）。实跑：`PROBE B.N1.diskPoint = {"status":"dropped","dropReason":"answered-on-gui"}`；同一 `statePath` 新建 Bridge 再 `start()` → `B.N1.restart.interruption = null`、`B.N1.restart.interruptMsgCount = 0`（不再误报"有 1 个待答请求已作废"）、`B.N1.restart.pointStatus = "dropped"`。 |
-| **B3** `whyTarget` 进 `renderCard`、`/why` 指向会话短 id | **已关闭** | `bridge.js:1180` 把 `whyTarget: wp.meta.whyTarget` 传进 `renderCard`，`envelope.js:64/66/67` 的 `wp.whyTarget ?? id` 因此生效。实跑卡片：`PROBE C.B3.cardHint = "改：/ans wp-5 1 批准 ｜ /ans wp-5 2 拒绝 ｜ /why aaaa11 看现场"`、`C.B3.hintHasWpId = false`、`C.B3.hintHasShortId = true`。**照着提示发真的能用**：`/why aaaa11 看现场` → 咨询会话键 `C.B3.followHint.consults = ["session-aaaa1111"]`、`createArgs = [{"cwd":"C:\\Project\\WatchDog"}]`、投进去的问题是"关于任务会话 session-aaaa1111（工作区 …）：看现场"、该待答点 `C.B3.followHint.evidenceViewed = true`，随后 `/yes` 的审计 `C.B3.audit.evidenceViewed = true`。旧死命令仍被堵：`/why wp-1` → `C.B3.whyWp.reply = "找不到 wp-1 这个会话…"` 且 `C.B3.whyWp.consults` 没有新增。 |
+| **B3** `whyTarget` 进 `renderCard`、`/why` 指向会话短 id | **已关闭** | `bridge.js:1180` 把 `whyTarget: wp.meta.whyTarget` 传进 `renderCard`，`envelope.js:64/66/67` 的 `wp.whyTarget ?? id` 因此生效。实跑卡片：`PROBE C.B3.cardHint = "改：/ans wp-5 1 批准 ｜ /ans wp-5 2 拒绝 ｜ /why aaaa11 看现场"`、`C.B3.hintHasWpId = false`、`C.B3.hintHasShortId = true`。**照着提示发真的能用**：`/why aaaa11 看现场` → 咨询会话键 `C.B3.followHint.consults = ["session-aaaa1111"]`、`createArgs = [{"cwd":"."}]`、投进去的问题是"关于任务会话 session-aaaa1111（工作区 …）：看现场"、该待答点 `C.B3.followHint.evidenceViewed = true`，随后 `/yes` 的审计 `C.B3.audit.evidenceViewed = true`。旧死命令仍被堵：`/why wp-1` → `C.B3.whyWp.reply = "找不到 wp-1 这个会话…"` 且 `C.B3.whyWp.consults` 没有新增。 |
 | **N2** 四种时序审计守恒 | **未关闭** | `PROBE D.N2.approval` / `D.N2.question`（四时序并排）：<br>· QQ 先答：`audits = ["{\"text\":\"yes\",\"by\":\"u1\"}"]`（1 条，内容=生效票）✅<br>· GUI 先答：`audits = ["{\"via\":\"gui\",\"outcome\":\"rejected\"}"]` / `…answers:[B]`（1 条）✅<br>· 都不答：`point = "open"`、`audits = 0` ✅<br>· **两边都答：`audits = 2`** —— 审批 `["{\"via\":\"gui\",\"outcome\":\"rejected\"}","{\"text\":\"yes\",\"by\":\"u1\"}"]`、提问 `["{\"via\":\"gui\",\"answers\":[B]}","{\"selected\":[\"B\"],\"by\":\"u1\"}"]`；待答点 `dropped`、生效票是 GUI 那一条，**第二条是被丢弃的手机票**。同一现象在 `PROBE N2.both.approval.*` / `N2.both.question.*` 复现，且手机同时收到 `已收到：wp-2 → yes` 与 `已在电脑端处理（rejected）…`。<br>根因（R2 已定位、R3 已给修法、本轮未动）：`bridge.js:443` 先 `await this.send("已收到…")`、`:444` 才 `points.answer()`、`:445-455` **无条件** `audit.append`，不看 `res.ok`。 |
 | **N3** `test/*.mjs` 实际通过数 | **未关闭** | 43 套逐套单跑：**GREEN=42 / RED=1**，断言级 **PASS=364 / FAIL=2**。红的是 `test/bb-batch5.mjs`（20/22），两条都是本提交刚改的 `:137-138`：<br>`FAIL BB-70 运行中的目标被拒或提示等待 — [wp-4] 将要发送：hi-A`<br>`FAIL BB-70 第二条要么进入确认要么明确拒绝 — 还有待答请求没处理（wp-4），先答复它。`<br>`bb-batch3`（上一轮另一条红）确实转绿（`BB-52` 改用 `requestId ∪ wpId` 判定）。作者的自述是"42 套…全绿"（提交信息）/任务记的"43/43"，两者都与实际不符。 |
 | **B1** 跨重启无 `callId` 审批撞键 | **已关闭（症状）** | `bridge.js:1141` 键改成 `auto-${this.startedAt}-${deliverySeq}`（`startedAt` 在 :150 取构造时刻）。同进程 4 个无 `callId` 审批：`PROBE E.B1.sameProcess = {"results":["allowed","allowed","allowed","allowed"],"keys":["auto-1792917818198-1"…-4]}`——R1 的"第 4 个起连卡片都不发"不再出现。**跨重启**：预置上一版落盘的 `{"auto-1":[t,t,t],"auto-2":…,"auto-3":…}` 再重启触发无 `callId` 审批 → `PROBE E.B1.afterRestartCollision = {"pointCreated":"wp-18","cardSent":1,"key":"auto-1792917818326-1"}`、`result = "allowed"`、审计 1 条——R1/R2/R3 那条"预置旧键 → `unavailable`、连卡片都不发"**复现不出来**了。残留（不阻断）：键仍不是契约的 `request.callId ?? wp.id`（02:25），见 §剩余风险 2。 |
@@ -48,7 +48,7 @@ HEAD = `89165be`（`fix(r3): B1/B3/B4/N1/N3/N4 + 新增 s40 覆盖提问 next`�
 |---|---|---|
 | `/list` + `/use` | 正常 | `PROBE R.list.firstLine = "1) aaaa11 · (无标题)｜刚刚｜未加载｜C\\Project\\WatchDog"`；`R.use.reply = "已绑定 aaaa11；…"`、`R.use.bound = "session-aaaa1111"` |
 | `/say` 确认卡 → `/ans 1` → 注入 → 回执 | 正常 | `R.say.card = ["[wp-19] 将要发送：改测试","上次停在：还没有 turn 结束记录"]`、`R.say.afterAns1.fed = 1`、`status = "resolved"`、`R.say.relay` 收到"会话回复"（`s5-say`/`s30`/`s32` 也全绿） |
-| `/new` | 正常 | `R.new.menu = "在哪个工作区新建？"`；`/new 1` → `{"reply":"已在 C:\\Project\\WatchDog 新建 newwww（今天第 1/10 个）…","created":[{"workspaceId":"w1"}]}`（`s11`、`s36` 绿） |
+| `/new` | 正常 | `R.new.menu = "在哪个工作区新建？"`；`/new 1` → `{"reply":"已在 . 新建 newwww（今天第 1/10 个）…","created":[{"workspaceId":"w1"}]}`（`s11`、`s36` 绿） |
 | `/why` | 正常，且比 R3 更好 | 见 B3：卡片提示可直接执行、`evidenceViewed` 有真来源；`/why wp-N` 仍拒（`C.B3.whyWp.*`） |
 | 通知（空闲 / 卡住） | 正常 | `R.notify.idle = ["[bbbb22]","本轮 1 分钟：改完了"]`（`s14`、`s18` 绿） |
 | 审计字段 | 未变 | `A.B4.guiFirst.audit` 的键仍是 `requestId / wpId / openid / at / card / evidenceViewed / evidenceMissing / outcome`（`s8` 17 条全绿） |
@@ -82,7 +82,7 @@ HEAD = `89165be`（`fix(r3): B1/B3/B4/N1/N3/N4 + 新增 s40 覆盖提问 next`�
 
 ## 实际测试基线
 
-用任务指定的 `C:\Users\95878\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe`，
+用任务指定的 `C:\Users\<user>\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe`，
 `test\*.mjs` 共 45 个，排除 `s1-waterfall.test.mjs`、`s3-loop.mjs` 后 **43 套**逐套单跑
 （每次独立进程，不共享 `.tmp`）：
 
@@ -133,7 +133,7 @@ s40-question-next 6。
 ## 复跑方式
 
 ```
-$node = C:\Users\95878\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe
+$node = C:\Users\<user>\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe
 逐个单跑 test\*.mjs（排除 s1-waterfall.test.mjs、s3-loop.mjs）→ 42 通过 / 1 失败（bb-batch5 20/22）
 $node .tmp\r4-probe.mjs   → A.B4 / B.N1 / C.B3 / D.N2 / E.B1 / R.* 各行
 $node .tmp\r4-probe2.mjs  → N4.abort / N2.both.* 各行

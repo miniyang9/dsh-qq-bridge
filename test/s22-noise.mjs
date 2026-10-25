@@ -3,7 +3,7 @@ const check = (ok,label,detail='') => { console.log((ok?'PASS  ':'FAIL  ')+label
 const { Bridge } = await import('../src/app/bridge.js')
 const sent = []
 const client = { on(){}, async start(){}, async stop(){}, async sendPassive(a){sent.push(a.content);return{id:'p'}}, async sendProactive(a){sent.push(a.content);return{id:'a'}} }
-const b = new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath:'C:/Project/WatchDog/.tmp/t-nb2-'+Date.now()+'.json', sessionsRoot:'C:/Project/WatchDog/.tmp/fake-none', log:{info(){},error(){}} })
+const b = new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath:'.tmp/t-nb2-'+Date.now()+'.json', sessionsRoot:'.tmp/fake-none', log:{info(){},error(){}} })
 await b.start()
 
 // 真人会话，即使没绑定，也要提醒（长任务在别的会话里也能看见）
@@ -29,7 +29,7 @@ check(sent.length === 0, '咨询会话不提醒', String(sent.length))
 // 停滞提醒同样遵守
 sent.length = 0
 let now = Date.now()
-const b2 = new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath:'C:/Project/WatchDog/.tmp/t-nb3-'+Date.now()+'.json', sessionsRoot:'C:/Project/WatchDog/.tmp/fake-none', now: () => now, log:{info(){},error(){}} })
+const b2 = new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath:'.tmp/t-nb3-'+Date.now()+'.json', sessionsRoot:'.tmp/fake-none', now: () => now, log:{info(){},error(){}} })
 await b2.start()
 const sub2 = { id: 'sess-sub-4444', origin: 'subagent' }
 await b2.onSessionEvent(sub2, { type:'turn/start' })

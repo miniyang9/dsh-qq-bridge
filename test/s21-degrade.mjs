@@ -3,7 +3,7 @@ const check = (ok,label,detail='') => { console.log((ok?'PASS  ':'FAIL  ')+label
 const { Bridge } = await import('../src/app/bridge.js')
 const sent = []
 const client = { on(){}, async start(){}, async stop(){}, async sendPassive(a){sent.push(a.content);return{id:'p'}}, async sendProactive(a){sent.push(a.content);return{id:'a'}} }
-const mk = (withConsult) => new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath:'C:/Project/WatchDog/.tmp/t-21-'+Date.now()+Math.random()+'.json', sessionsRoot:'C:/Project/WatchDog/.tmp/fake-none', getSessionController: withConsult ? (()=>({createSession:async()=>({sessionId:'c1'})})) : (()=>null), getAgents: withConsult ? (()=>({get:()=>({inject(){}})})) : (()=>null), log:{info(){},error(){}} })
+const mk = (withConsult) => new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath:'.tmp/t-21-'+Date.now()+Math.random()+'.json', sessionsRoot:'.tmp/fake-none', getSessionController: withConsult ? (()=>({createSession:async()=>({sessionId:'c1'})})) : (()=>null), getAgents: withConsult ? (()=>({get:()=>({inject(){}})})) : (()=>null), log:{info(){},error(){}} })
 const inbound = (b,c,id) => b.onEvent({ type:'C2C_MESSAGE_CREATE', data:{ id, content:c, author:{user_openid:'u1'} } })
 
 // 咨询可用：标注卡片不标"现场不可查"
@@ -28,7 +28,7 @@ const inbound = (b,c,id) => b.onEvent({ type:'C2C_MESSAGE_CREATE', data:{ id, co
   const id = b.points.list().at(-1).id
   await inbound(b, `/yes ${id}`, 'm2'); await p
   const fs = await import('node:fs')
-  const ap = 'C:/Project/WatchDog/.tmp/t-21-'.concat('') // 占位
+  const ap = '.tmp/t-21-'.concat('') // 占位
   const entries = sent.length
   check(entries > 0, '仍然可以批准（不阻拦）')
 }

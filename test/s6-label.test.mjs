@@ -12,7 +12,7 @@ function check(ok, label, detail = '') {
 
 const { classify, isOutsideWrite, findToolArgs } = await import('../src/core/label.js')
 
-const ROOT = 'C:\\Project\\WatchDog'
+const ROOT = '.'
 
 // 1) 提权信号
 check(classify({ toolName: 'fs.write', args: { sandbox_permissions: 'danger-full-access' }, workspaceRoot: ROOT }).reason === 'escalation', '参数含 sandbox_permissions → escalation')
@@ -24,12 +24,12 @@ check(classify({ toolName: 'git.push', args: {}, workspaceRoot: ROOT, whitelist:
 const outside = { path: 'C:\\Windows\\x.txt' }
 check(isOutsideWrite({ toolName: 'fs.write', args: outside, workspaceRoot: ROOT }) === true, '写工作区外 → true')
 check(classify({ toolName: 'fs.write', args: outside, workspaceRoot: ROOT }).reason === 'outside-workspace', '分类为 outside-workspace')
-check(isOutsideWrite({ toolName: 'fs.write', args: { path: 'C:\\Project\\WatchDog\\a.txt' }, workspaceRoot: ROOT }) === false, '写工作区内 → false')
+check(isOutsideWrite({ toolName: 'fs.write', args: { path: 'a.txt' }, workspaceRoot: ROOT }) === false, '写工作区内 → false')
 check(isOutsideWrite({ toolName: 'fs.read', args: outside, workspaceRoot: ROOT }) === false, '读工具不因路径被判不可逆')
 check(isOutsideWrite({ toolName: 'fs.write', args: { content: 'C:\\Windows\\x' }, workspaceRoot: ROOT }) === false, '只看路径键，不扫内容')
 
 // 4) 默认不标
-check(classify({ toolName: 'fs.read', args: { path: 'C:\\Project\\WatchDog\\a.txt' }, workspaceRoot: ROOT }).labeled === false, '普通读 → 不标')
+check(classify({ toolName: 'fs.read', args: { path: 'a.txt' }, workspaceRoot: ROOT }).labeled === false, '普通读 → 不标')
 
 // 5) 参数反查（审批请求不带参数，从 tool/call 事件找）
 function fakeSession(events) {

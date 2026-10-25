@@ -2,15 +2,15 @@
 const check = (id, ok, label, detail='') => { results.push({id,ok,label,detail}); console.log(`${ok?'PASS':'FAIL'}  ${id}  ${label}${detail?'  — '+detail:''}`) }
 const fs = await import('node:fs')
 const { Bridge } = await import('../src/app/bridge.js')
-const ROOT='C:/Project/WatchDog/.tmp/bb6-s'; fs.rmSync(ROOT,{recursive:true,force:true})
+const ROOT='.tmp/bb6-s'; fs.rmSync(ROOT,{recursive:true,force:true})
 for (const id of ['session-aaa11111','session-bbb22222']) {
   const d = `${ROOT}/--C-Project-WatchDog--/${id}`; fs.mkdirSync(d,{recursive:true})
-  fs.writeFileSync(`${d}/session.v4.jsonl`, JSON.stringify({ type:'session', id, cwd:'C:\\Project\\WatchDog', delegationDepth:0, agentPreset:'standard' }))
+  fs.writeFileSync(`${d}/session.v4.jsonl`, JSON.stringify({ type:'session', id, cwd:'.', delegationDepth:0, agentPreset:'standard' }))
 }
 const sent=[]; const injected=[]
 const client={on(){},async start(){},async stop(){},async sendPassive(a){sent.push(a.content);return{id:'p'}},async sendProactive(a){sent.push(a.content);return{id:'a'}}}
 const mkAgent=(id,events)=>({id,session:{id,seq:events.length,eventAt:i=>events[i]},inject:m=>injected.push({id,m})})
-const b=new Bridge({appId:'x',appSecret:'y',allowlist:['u1'],client,statePath:'C:/Project/WatchDog/.tmp/bb6-'+Date.now()+'.json',sessionsRoot:ROOT,workspaceRoot:'C:\\Project\\WatchDog',log:{info(){},error(){}}})
+const b=new Bridge({appId:'x',appSecret:'y',allowlist:['u1'],client,statePath:'.tmp/bb6-'+Date.now()+'.json',sessionsRoot:ROOT,workspaceRoot:'.',log:{info(){},error(){}}})
 await b.start()
 const idle=mkAgent('session-aaa11111',[{type:'turn/end'}])
 const busy=mkAgent('session-bbb22222',[{type:'turn/start'}])

@@ -57,7 +57,7 @@ HEAD = `91b2732`（`fix(r2): B1/B3/B7/B8/B9 + N1/N4/N5/N6`），工作树干净�
 
 ## 实际测试基线
 
-用任务指定的 `C:\Users\95878\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe`，
+用任务指定的 `C:\Users\<user>\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe`，
 逐个单跑 `test\*.mjs`（排除 `s1-waterfall.test.mjs`、`s3-loop.mjs`，共 **42** 套）：
 
 ```
@@ -111,7 +111,7 @@ RED：test\bb-batch3.mjs  → FAIL BB-52「审计里两个 id 各一条」（实
 ## 复跑方式
 
 ```
-$node = C:\Users\95878\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe
+$node = C:\Users\<user>\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe
 逐个执行 test\*.mjs（排除 s1-waterfall.test.mjs、s3-loop.mjs）→ 40 通过 / 2 失败
 $node .tmp\r3-probe.mjs、.tmp\r3-probe2.mjs、.tmp\r3-probe3.mjs → 见正文 PROBE 行
 ```

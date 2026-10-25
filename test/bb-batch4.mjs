@@ -3,7 +3,7 @@ const check = (id, ok, label, detail='') => { results.push({id,ok,label,detail})
 const { Bridge } = await import('../src/app/bridge.js')
 const sent = []
 const client = { on(){}, async start(){}, async stop(){}, async sendPassive(a){ sent.push(a.content); return {id:'p'} }, async sendProactive(a){ sent.push(a.content); return {id:'a'} } }
-const b = new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath:'C:/Project/WatchDog/.tmp/bb4-'+Date.now()+'.json', sessionsRoot:'C:/Project/WatchDog/.tmp/fake-none', log:{info(){},error(){}} })
+const b = new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath:'.tmp/bb4-'+Date.now()+'.json', sessionsRoot:'.tmp/fake-none', log:{info(){},error(){}} })
 b.mergeMs = 300
 await b.start()
 const agent = (sid) => ({ id: sid, session: { id: sid, seq: 0, eventAt: () => null } })

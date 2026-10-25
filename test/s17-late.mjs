@@ -3,7 +3,7 @@ const check = (ok,label,detail='') => { console.log((ok?'PASS  ':'FAIL  ')+label
 const { Bridge } = await import('../src/app/bridge.js')
 const sent = []
 const client = { on(){}, async start(){}, async stop(){}, async sendPassive(a){sent.push(a.content);return{id:'p'}}, async sendProactive(a){sent.push(a.content);return{id:'a'}} }
-const mk = () => new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath:'C:/Project/WatchDog/.tmp/t-17-'+Date.now()+Math.random()+'.json', sessionsRoot:'C:/Project/WatchDog/.tmp/fake-none', log:{info(){},error(){}} })
+const mk = () => new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath:'.tmp/t-17-'+Date.now()+Math.random()+'.json', sessionsRoot:'.tmp/fake-none', log:{info(){},error(){}} })
 const inbound = (b,c,id) => b.onEvent({ type:'C2C_MESSAGE_CREATE', data:{ id, content:c, author:{user_openid:'u1'} } })
 
 // A9a：signal 中止 → cancelled，迟到答复不生效

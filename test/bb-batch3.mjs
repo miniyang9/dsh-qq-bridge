@@ -22,9 +22,9 @@ function makeBridge() {
   }
   const b = new Bridge({
     appId: 'x', appSecret: 'y', allowlist: ['u1'], client,
-    statePath: `C:/Project/WatchDog/.tmp/bb3-${Date.now()}-${Math.random()}.json`,
-    sessionsRoot: 'C:/Project/WatchDog/.tmp/fake-none',
-    workspaceRoot: 'C:\\Project\\WatchDog',
+    statePath: `.tmp/bb3-${Date.now()}-${Math.random()}.json`,
+    sessionsRoot: '.tmp/fake-none',
+    workspaceRoot: '.',
     log: { info() {}, error() {} },
   })
   const inbound = (content, id) => b.onEvent({ type: 'C2C_MESSAGE_CREATE', data: { id, content, author: { user_openid: 'u1' } } })
@@ -79,17 +79,17 @@ const agent = (sid) => ({ id: sid, session: { id: sid, seq: 0, eventAt: () => nu
 // ---------- BB-69：同一工具+同一参数，跨会话标注结论一致 ----------
 {
   const args = { path: 'C:\\Windows\\x.txt' }
-  const one = classify({ toolName: 'fs.write', args, workspaceRoot: 'C:\\Project\\WatchDog', whitelist: [] })
-  const two = classify({ toolName: 'fs.write', args, workspaceRoot: 'C:\\Project\\WatchDog', whitelist: [] })
-  const three = classify({ toolName: 'fs.write', args, workspaceRoot: 'C:\\Project\\WatchDog', whitelist: [] })
+  const one = classify({ toolName: 'fs.write', args, workspaceRoot: '.', whitelist: [] })
+  const two = classify({ toolName: 'fs.write', args, workspaceRoot: '.', whitelist: [] })
+  const three = classify({ toolName: 'fs.write', args, workspaceRoot: '.', whitelist: [] })
   check('BB-69', one.labeled === two.labeled && two.labeled === three.labeled && one.reason === three.reason,
     '3 次同输入标注结论完全相同', JSON.stringify([one, two, three]))
   check('BB-69', one.labeled === true && one.reason === 'outside-workspace', '判为 outside-workspace', JSON.stringify(one))
-  const read = classify({ toolName: 'fs.read', args, workspaceRoot: 'C:\\Project\\WatchDog', whitelist: [] })
+  const read = classify({ toolName: 'fs.read', args, workspaceRoot: '.', whitelist: [] })
   check('BB-69', read.labeled === false, '读工具（R1）不被标注')
 }
 
 const fail = results.filter((r) => !r.ok)
 console.log(`\n${fail.length === 0 ? 'BATCH-3 PASS' : 'BATCH-3 FAIL'}  (${results.length - fail.length}/${results.length})`)
-fs.writeFileSync('C:/Project/WatchDog/.tmp/bb-batch3.json', JSON.stringify(results, null, 2))
+fs.writeFileSync('.tmp/bb-batch3.json', JSON.stringify(results, null, 2))
 process.exit(fail.length === 0 ? 0 : 1)

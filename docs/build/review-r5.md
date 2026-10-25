@@ -121,7 +121,7 @@ if (!this.points.drop(wp.id, 'answered-on-gui')) {
 
 ## N3 实际基线
 
-用任务指定的 `C:\Users\95878\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe`，
+用任务指定的 `C:\Users\<user>\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe`，
 `test\*.mjs` 共 46 个，排除 `s1-waterfall.test.mjs`、`s3-loop.mjs` 后 **44 套**逐套单跑（每次独立进程）：
 
 ```
@@ -155,7 +155,7 @@ s36-workspace 2、s37-qqtitle 3、s38-dual 7、s39-guarantees 22、s40-question-
 | `s3-order` 断言放宽的后果 | 可接受，但**"顺序"这条不变量从此没人守** | 新断言是 `resolveIdx >= 0 && confirmIdx >= 0`（`:65`）。上面"把 `bridge.js` 换回 89165be"的实验里 s3-order 仍 9/9 绿——说明它已不能区分两种顺序。原意（确认不能丢）由 `:62` 的 `check(confirmIdx >= 0, '确认消息已发出')` 保留了一半。 |
 | `/say` 确认卡 → `/ans 1` → 注入 → 回执 | 正常 | `I.say.confirm = {"card":"[wp-16] 将要发送：改测试","id":"wp-16"}`；`I.say.afterAns = {"fed":1,"status":"resolved","reply":"已发送：改测试"}`；`s5-say` 11/11、`s30` 5/5、`s32` 7/7 绿 |
 | `/wake` | 正常 | `I.wake = {"reply":"已唤醒 aaaa11（aaaa11），状态「空闲」，可以 /say。"}`；`s10` / `s26` / `s29` 全绿 |
-| `/new` | 正常，`workspaceId` 仍传 | `I.new = {"reply":"已在 C:\\Project\\WatchDog 新建 newwww（今天第 1/10 个）。用 /say 给它第一句话。","createdArgs":{"workspaceId":"w1"}}`；`s11` 7/7、`s36` 2/2 绿 |
+| `/new` | 正常，`workspaceId` 仍传 | `I.new = {"reply":"已在 . 新建 newwww（今天第 1/10 个）。用 /say 给它第一句话。","createdArgs":{"workspaceId":"w1"}}`；`s11` 7/7、`s36` 2/2 绿 |
 | `/why` | 咨询键仍是会话短 id；**成功时仍无即时回话**（R4 残留 6，未变） | `I.why = {"consults":["session-aaaa1111"]}`，`sent2` 里没有新增回话；`s12` 8/8 绿 |
 | 通知（空闲 / 卡住 / 完成） | 正常 | `s14-notify` 7/7（10 分钟停滞、30 分钟升级、turn/end "它停了"、不重复） |
 | `/list` `/use` | 正常 | `I.list` 仍是"任务列表（按修改时间倒序）：… 用 /use <序号\|短id> 绑定；…"；`I.use = {"reply":"已绑定 aaaa11；「空闲」时可用 /say，运行中会等它结束。"}`；`bb-batch1/2/3` 全绿 |
@@ -212,7 +212,7 @@ s36-workspace 2、s37-qqtitle 3、s38-dual 7、s39-guarantees 22、s40-question-
 ## 复跑方式
 
 ```
-$node = C:\Users\95878\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe
+$node = C:\Users\<user>\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe
 逐个单跑 test\*.mjs（排除 s1-waterfall.test.mjs、s3-loop.mjs）→ 44/44 绿，断言级 376 PASS / 0 FAIL
 $node .tmp\r5-probe.mjs    → A1/A2/A3、B1/B2/B3、C.guiThenQq*、D.question.race、E.abort、F.order、G.ackVsNotify、H.lateVotes、I.*、J.auditFields
 $node .tmp\r5-probe2.mjs   → 1.*.distinct、2.stress.{mt,sync,t0}、3.q.*、4.list/new/wake

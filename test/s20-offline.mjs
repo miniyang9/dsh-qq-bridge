@@ -11,7 +11,7 @@ const client = {
   async sendPassive(a){ if(down) throw new Error('offline'); sent.push(a.content); return {id:'p'} },
   async sendProactive(a){ if(down) throw new Error('offline'); sent.push(a.content); return {id:'a'} },
 }
-const b = new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath:'C:/Project/WatchDog/.tmp/t-20-'+Date.now()+'.json', sessionsRoot:'C:/Project/WatchDog/.tmp/fake-none', log:{info(){},error(){}} })
+const b = new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath:'.tmp/t-20-'+Date.now()+'.json', sessionsRoot:'.tmp/fake-none', log:{info(){},error(){}} })
 await b.start()
 await b.send('第一条（会失败）', null)
 await b.send('第二条（会失败）', null)
