@@ -7,6 +7,12 @@
 let seq = 0
 
 export class WaitPointStore {
+  /** @param {() => number} [now] 注入时钟，默认 Date.now */
+  #now
+  constructor(now = Date.now) {
+    this.#now = now
+  }
+
   #items = new Map()
 
   create({ kind = 'approval', title = '', meta = {} } = {}) {
@@ -21,7 +27,7 @@ export class WaitPointStore {
       title,
       meta,
       status: 'open',
-      createdAt: Date.now(),
+      createdAt: this.#now(),
       answer: null,
       resolve,
       promise,
@@ -39,7 +45,7 @@ export class WaitPointStore {
         title: it.title ?? '',
         meta: it.meta ?? {},
         status: it.status ?? 'dropped',
-        createdAt: it.createdAt ?? Date.now(),
+        createdAt: it.createdAt ?? this.#now(),
         answer: it.answer ?? null,
         dropReason: it.dropReason ?? null,
         resolve: () => {},

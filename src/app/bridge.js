@@ -163,7 +163,7 @@ export class Bridge {
     this.allowlist = new Set(allowlist.filter(Boolean))
     this.log = log
     this.now = now
-    this.points = new WaitPointStore()
+    this.points = new WaitPointStore(() => this.now())
     this.boundAgent = null
     this.sessions = new Map()
     this.consults = new Map()
@@ -833,7 +833,7 @@ export class Bridge {
       await this.#persist()
       if (id) {
         const agents = this.getAgents()
-        const agent = agents?.get?.(id)
+        const agent = await this.#waitAgent(agents, id)   // D16：创建是异步的，等一下并重试
         // 先只给一个 "QQ" 前缀，等第一句话进来再补成 "QQ <任务>"
         try {
           agent?.session?.append?.('session/title', { title: 'QQ' })
@@ -1220,6 +1220,33 @@ export class Bridge {
         sent.push(id)
       }
     }
+    // A6/D4：待答点 10 分钟、30 分钟各提醒一次（同一请求每档只一次）
+    let touched = false
+    for (const p of this.points.list()) {
+      if (p.status !== 'open') continue
+      const age = this.now() - (p.createdAt ?? this.now())
+      const meta = p.meta ?? {}
+      if (age >= 30 * 60_000 && meta.remind30 !== true) {
+        meta.remind30 = true
+        p.meta = meta
+        touched = true
+        if (this.#noticeBudgetOk()) {
+          await this.send(
+            `[${p.id}] 已经 30 分钟没人答复了（${p.title ?? '待答请求'}）。\n/ans ${p.id} 1 批准 ｜ /ans ${p.id} 2 拒绝 ｜ /why ${meta.sessionId ? shortOf(meta.sessionId) : p.id} 看现场`,
+            null,
+          )
+        }
+      } else if (age >= 10 * 60_000 && meta.remind10 !== true) {
+        meta.remind10 = true
+        p.meta = meta
+        touched = true
+        if (this.#noticeBudgetOk()) {
+          await this.send(`[${p.id}] 还没答复（${p.title ?? '待答请求'}，10 分钟了）。`, null)
+        }
+      }
+    }
+    if (touched) await this.#persist().catch(() => {})
+
     return sent
   }
 
@@ -1245,10 +1272,14 @@ export class Bridge {
 
     // S6 实测：审批请求本身不带工具参数；参数要从会话的 tool/call 事件按 callId 反查。
     const args = request.args ?? findToolArgs(request.agent?.session, request.callId)
+    // A11：判断"是否在工作区外"必须以该会话自己的 cwd 为根，不能用进程 cwd
+    const sessionCwd = request.agent?.session?.header?.cwd
+      ?? request.agent?.session?.cwd
+      ?? this.workspaceRoot
     const label = classify({
       toolName: request.toolName,
       args,
-      workspaceRoot: this.workspaceRoot,
+      workspaceRoot: sessionCwd,
       whitelist: this.toolWhitelist,
     })
 
