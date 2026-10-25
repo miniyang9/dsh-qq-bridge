@@ -211,6 +211,10 @@ export class Bridge {
 
   async start() {
     await this.#loadState()
+    // A26：审计保留 180 天；启动时裁剪一次（失败不影响启动）
+    if (this.audit && typeof this.audit.prune === 'function') {
+      this.audit.prune().catch?.(() => {})
+    }
     this.ready = this.client.start()
     return this.ready
   }
@@ -600,13 +604,13 @@ export class Bridge {
         const ev = session.eventAt(i)
         if (!ev?.type) continue
         if (['turn/start', 'turn/end', 'assistant/message', 'tool/call', 'approval/asked', 'approval/decided'].includes(ev.type)) {
-          recent.push(`· ${ev.type}${ev.data?.name ? '(' + String(ev.data.name).slice(0, 20) + ')' : ''}`)
+          recent.push(`· ev-${i} ${ev.type}${ev.data?.name ? '(' + String(ev.data.name).slice(0, 20) + ')' : ''}`)
         }
       }
     }
     return [
       `会话 ${shortOf(target.id)}：${busy ? '正在跑' : '空闲'}`,
-      `待答请求：${open} 个`,
+      `待答请求：${open} 个${open > 0 ? '（' + this.points.list().filter((p) => p.status === 'open').map((p) => p.id).join('、') + '）' : ''}`,
       recent.length ? '最近事件（新→旧）：' + recent.join(' ') : '还没有事件',
       busy ? `想看它为什么停：/why ${shortOf(target.id)}` : `要继续：/say ${shortOf(target.id)} <指令>`,
     ].join('\n')
@@ -1322,10 +1326,14 @@ export class Bridge {
       toolName: request.toolName,
       reason: request.reason ?? request.displayReason,
       args: args === undefined ? undefined : JSON.stringify(args).slice(0, 300),
-      target: label.reason === 'outside-workspace' ? '工作区外' : undefined,
+      target: label.reason === 'outside-workspace' ? '工作区外'
+        : label.reason === 'escalation' ? '需要提权（沙箱外）'
+        : label.reason === null ? '工作区/沙箱范围内'
+        : '需人工判断',
       reversible: label.labeled ? false : undefined,
       labeled: label.labeled,
       evidenceMissing: wp.meta.evidenceMissing,
+      evidenceViewed: wp.meta.evidenceViewed === true,
       whyTarget: wp.meta.whyTarget,
       options: ['批准', '拒绝'],
     })

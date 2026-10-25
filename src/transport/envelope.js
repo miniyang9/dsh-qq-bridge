@@ -49,7 +49,7 @@ export function renderCard(waitPoint) {
   if (wp.toolName) facts.push(`工具：${wp.toolName}`)
   if (wp.reason) facts.push(`理由：${wp.reason}`)
   facts.push(`参数：${wp.args === undefined || wp.args === null || wp.args === '' ? '未附' : String(wp.args)}`)
-  if (wp.target) facts.push(`影响范围：${wp.target}`)
+  facts.push(`影响范围：${wp.target ?? '未判定'}`)
   facts.push(`可撤回：${wp.reversible === false ? '否' : wp.reversible === true ? '是' : '未判定'}`)
 
   const options = Array.isArray(wp.options) && wp.options.length > 0
@@ -58,6 +58,8 @@ export function renderCard(waitPoint) {
 
   const labeled = wp.labeled === true
   const missing = wp.evidenceMissing === true
+const viewed = wp.evidenceViewed === true
+facts.push(`现场：${missing ? '暂不可查（咨询不可用）' : viewed ? '已查看' : '未查看（可发 /why 查看）'}`)
   const hint = labeled && missing
     ? `改：/yes ${id} 批准 ｜ /no ${id} 拒绝（此请求不可逆，只认 /yes；现场暂不可查：咨询不可用）`
     : labeled
