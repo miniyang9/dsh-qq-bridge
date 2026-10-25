@@ -140,6 +140,7 @@ export class Bridge {
     workspaceIndex = undefined,
     getAgents = () => null,
     getSessionController = () => null,
+    getWorkspaceController = () => null,
     probeServices = null,
     maxNewPerWorkspacePerDay = 10,
     mergeMs = 0,
@@ -151,6 +152,7 @@ export class Bridge {
     this.workspaceIndex = workspaceIndex
     this.getAgents = getAgents
     this.getSessionController = getSessionController
+    this.getWorkspaceController = getWorkspaceController
     this.probeServices = probeServices
     this.maxNewPerWorkspacePerDay = maxNewPerWorkspacePerDay
     this.mergeMs = mergeMs
@@ -765,7 +767,21 @@ export class Bridge {
     clearTimeout(entry.timer)
     this.consults.delete(key)
     try { entry.agent?.cancel?.({ kind: 'user' }) } catch { /* ignore */ }
-    const msg = `咨询已结束（会话 ${shortOf(key)}，共 ${entry.rounds} 轮，原因：${reason}）`
+    // /done 之后自动归档咨询会话（用户要求）：不留在侧边栏里继续占位置
+    let archived = false
+    try {
+      const wc = this.getWorkspaceController?.()
+      const consultId = String(entry.consultId ?? '')
+      if (wc && typeof wc.archiveSession === 'function' && consultId) {
+        await wc.archiveSession({ sessionId: consultId })
+        archived = true
+      }
+    } catch {
+      archived = false
+    }
+
+    const tail = archived ? '；已归档' : '；归档未成功'
+    const msg = `咨询已结束（会话 ${shortOf(key)}，共 ${entry.rounds} 轮，原因：${reason}${tail}）`
     if (data) await this.send(msg, data.id)
     else await this.send(msg, null)
   }
