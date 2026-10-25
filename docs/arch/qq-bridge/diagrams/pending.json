@@ -1,0 +1,22 @@
+{
+  "title": "待答点（WaitPoint）· 四态与出边",
+  "width": 1180,
+  "height": 620,
+  "nodes": [
+    { "id": "open", "label": "open", "sub": "已投递，等答复", "x": 60, "y": 240, "w": 190, "h": 110, "fill": "#1e293b", "stroke": "#38bdf8" },
+    { "id": "resolved", "label": "resolved", "sub": "allowed / rejected", "x": 430, "y": 80, "w": 190, "h": 110, "fill": "#1e293b", "stroke": "#34d399" },
+    { "id": "expired", "label": "expired", "sub": "signal 中止 / 提问 timeout", "x": 430, "y": 400, "w": 200, "h": 110, "fill": "#1e293b", "stroke": "#f59e0b" },
+    { "id": "dropped", "label": "dropped", "sub": "turn/end · 重启 · 断电", "x": 800, "y": 400, "w": 200, "h": 110, "fill": "#1e293b", "stroke": "#f59e0b" },
+    { "id": "late", "label": "迟到答复", "sub": "不改状态，只回「已失效」+ 日志", "x": 800, "y": 120, "w": 220, "h": 100, "fill": "#111827", "stroke": "#94a3b8" },
+    { "id": "start", "label": "approval/asked", "sub": "或 questions/asked", "x": 60, "y": 80, "w": 190, "h": 90, "fill": "#111827", "stroke": "#64748b" }
+  ],
+  "edges": [
+    { "from": "start", "to": "open", "label": "产生", "style": "solid" },
+    { "from": "open", "to": "resolved", "label": "答复 allowed / rejected", "style": "solid" },
+    { "from": "open", "to": "expired", "label": "中止 / 超时", "style": "solid" },
+    { "from": "open", "to": "dropped", "label": "turn 结束 / 重启", "style": "solid" },
+    { "from": "resolved", "to": "late", "label": "再收到答复", "style": "dashed" },
+    { "from": "expired", "to": "late", "label": "迟到答复", "style": "dashed" },
+    { "from": "dropped", "to": "late", "label": "旧选项回复", "style": "dashed" }
+  ]
+}

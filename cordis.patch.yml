@@ -1,0 +1,10 @@
+# 本 bundle 只做一件事：把 qq-bridge 插件插进 profile 的插件树。
+#
+# S1 阶段它是"空壳"——插件只注册 approval/request 处理者，不外连、不落盘。
+# 配置项在 S2 起才有意义（白名单、标注白名单、阈值）。
+- insert:
+    - id: qq-bridge
+      name: dsh-qq-bridge
+      config:
+        # S1 期间默认拒绝，用来证明"结果由插件给出而不是 DSH 的 unavailable 回退"。
+        s1DefaultOutcome: rejected

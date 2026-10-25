@@ -1,0 +1,27 @@
+{
+  "title": "qq-bridge · 模块与数据流",
+  "width": 1320,
+  "height": 460,
+  "nodes": [
+    { "id": "dsh", "label": "DSH 运行时", "sub": "approval/request · user-questions/request · session/event", "x": 30, "y": 90, "w": 190, "h": 130, "fill": "#0b1220", "stroke": "#38bdf8" },
+    { "id": "l1", "label": "L1 seam", "sub": "唯一知道 DSH；答复回注", "x": 292, "y": 90, "w": 190, "h": 130, "fill": "#1e293b", "stroke": "#818cf8" },
+    { "id": "l2", "label": "L2 router", "sub": "PendingItem · ActionClass", "x": 554, "y": 90, "w": 190, "h": 130, "fill": "#1e293b", "stroke": "#818cf8" },
+    { "id": "l3", "label": "L3 outbox", "sub": "Delivery · 去重 · 补发", "x": 816, "y": 90, "w": 190, "h": 130, "fill": "#1e293b", "stroke": "#818cf8" },
+    { "id": "l4", "label": "L4 transport", "sub": "QqEnvelope · 长连 · token", "x": 1078, "y": 90, "w": 190, "h": 130, "fill": "#1e293b", "stroke": "#a78bfa" },
+    { "id": "qq", "label": "QQ 开放平台", "sub": "WSS 出连 · 主动/被动", "x": 1078, "y": 330, "w": 190, "h": 110, "fill": "#0b1220", "stroke": "#34d399" },
+    { "id": "disk", "label": "落盘", "sub": "state.json（原子写）· outbox.jsonl", "x": 554, "y": 290, "w": 380, "h": 110, "fill": "#111827", "stroke": "#f59e0b" },
+    { "id": "wd", "label": "watchdog", "sub": "心跳 · 少于 2 周期即重启", "x": 292, "y": 290, "w": 190, "h": 110, "fill": "#111827", "stroke": "#f59e0b" },
+    { "id": "cfg", "label": "config", "sub": "白名单 · 分档 · 阈值", "x": 30, "y": 290, "w": 190, "h": 110, "fill": "#111827", "stroke": "#f59e0b" }
+  ],
+  "edges": [
+    { "from": "dsh", "to": "l1", "label": "事实", "style": "solid" },
+    { "from": "l1", "to": "l2", "label": "事件", "style": "solid" },
+    { "from": "l2", "to": "l3", "label": "交付", "style": "solid" },
+    { "from": "l3", "to": "l4", "label": "信封", "style": "solid" },
+    { "from": "l4", "to": "qq", "label": "外发", "style": "solid" },
+    { "from": "qq", "to": "l4", "label": "入站", "style": "dashed" },
+    { "from": "l2", "to": "disk", "label": "待决", "style": "dotted" },
+    { "from": "l3", "to": "disk", "label": "投递", "style": "dotted" },
+    { "from": "wd", "to": "l1", "label": "重启", "style": "dotted" }
+  ]
+}

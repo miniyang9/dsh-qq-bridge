@@ -1,0 +1,18 @@
+{
+  "title": "L2 问答路径 · 只读旁路会话",
+  "width": 1300,
+  "height": 270,
+  "nodes": [
+    { "id": "you", "label": "你 · QQ", "sub": "/why <id>", "x": 30, "y": 100, "w": 160, "h": 110, "fill": "#0b1220", "stroke": "#34d399" },
+    { "id": "router", "label": "router", "sub": "白名单校验；定位待答点；失败/超时 → 回 L1 摘要", "x": 270, "y": 100, "w": 210, "h": 110, "fill": "#1e293b", "stroke": "#818cf8" },
+    { "id": "l2", "label": "L2 旁路会话（只读）", "sub": "headless + session-query + read-only", "x": 550, "y": 100, "w": 250, "h": 110, "fill": "#1e293b", "stroke": "#a78bfa" },
+    { "id": "ans", "label": "结论 + 依据", "sub": "写类调用 0；出站仅模型端点", "x": 870, "y": 100, "w": 210, "h": 110, "fill": "#1e293b", "stroke": "#f59e0b" },
+    { "id": "back", "label": "回你", "sub": "结论 + 文件:行 / 事件 ID", "x": 1150, "y": 100, "w": 130, "h": 110, "fill": "#0b1220", "stroke": "#34d399" }
+  ],
+  "edges": [
+    { "from": "you", "to": "router", "label": "命令", "style": "solid" },
+    { "from": "router", "to": "l2", "label": "起会话", "style": "solid" },
+    { "from": "l2", "to": "ans", "label": "调查", "style": "solid" },
+    { "from": "ans", "to": "back", "label": "答复", "style": "solid" }
+  ]
+}
