@@ -45,11 +45,13 @@ const MAX_PUSH_PER_DAY = 3
  */
 export function userMessage(text) {
   // 形状对齐 dsh-llm 的 createUserMessage：role + id 缺一不可，否则会被静默丢弃
+  const id = globalThis.crypto?.randomUUID?.() ?? `say-${Date.now()}-${Math.random().toString(16).slice(2)}`
   return {
-    id: globalThis.crypto?.randomUUID?.() ?? `say-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    id,
     role: 'user',
     content: [{ type: 'text', text }],
-    source: { kind: 'user-say' },
+    // DSH 的 MessageSource 词表：kind 必须是 'user'（还要 rpcId），没有 'user-say'
+    source: { kind: 'user', rpcId: id },
   }
 }
 
@@ -112,7 +114,7 @@ export function writeTargetOf(name, argsRaw) {
 export function deliverToAgent(agent, message) {
   if (agent === null || agent === undefined) throw new Error('没有 agent 可投递')
   if (typeof agent.followup === 'function') { agent.followup(message); return 'followup' }
-  if (typeof agent.send === 'function') { agent.send(message, undefined, true); return 'send' }
+  if (typeof agent.send === 'function') { agent.send(message, 'next-turn', true); return 'send' }
   if (typeof agent.inject === 'function') { agent.inject(message); return 'inject' }
   throw new Error('这个 agent 没有 followup/send/inject')
 }
