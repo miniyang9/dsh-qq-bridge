@@ -772,18 +772,24 @@ export class Bridge {
     try { entry.agent?.cancel?.({ kind: 'user' }) } catch { /* ignore */ }
     // /done 之后自动归档咨询会话（用户要求）：不留在侧边栏里继续占位置
     let archived = false
+    let archiveError = null
     try {
       const wc = this.getWorkspaceController?.()
       const consultId = String(entry.consultId ?? '')
       if (wc && typeof wc.archiveSession === 'function' && consultId) {
-        await wc.archiveSession({ sessionId: consultId })
+        // stopActivity：会话还在跑（例如正在回答你的问题）时，官方接口默认拒绝归档；
+        // 这里明确要求先停掉它的活动再归档，否则 /done 一定失败。
+        await wc.archiveSession({ sessionId: consultId, stopActivity: true })
         archived = true
+      } else {
+        archiveError = '拿不到 workspaceController'
       }
-    } catch {
+    } catch (err) {
       archived = false
+      archiveError = err?.message ?? String(err)
     }
 
-    const tail = archived ? '；已归档' : '；归档未成功'
+    const tail = archived ? '；已归档' : `；归档未成功（${archiveError ?? '未知原因'}）`
     const msg = `咨询已结束（会话 ${shortOf(key)}，共 ${entry.rounds} 轮，原因：${reason}${tail}）`
     if (data) await this.send(msg, data.id)
     else await this.send(msg, null)

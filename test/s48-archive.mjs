@@ -22,7 +22,8 @@ let archivedId = null
 let createCount = 0
 const sc = { async create() { createCount += 1; return { sessionId: 'session-consult-' + createCount } } }
 const agents = { get: (id) => ({ id, session: { id, seq: 0, eventAt: () => null }, append() {}, followup() {} }) }
-const wc = { async archiveSession(req) { archivedId = req.sessionId } }
+let stopActivitySeen = null
+const wc = { async archiveSession(req) { archivedId = req.sessionId; stopActivitySeen = req.stopActivity } }
 
 const make = (workspaceController) => new Bridge({
   appId: 'x', appSecret: 'y', allowlist: ['u1'], client,
@@ -40,6 +41,7 @@ const make = (workspaceController) => new Bridge({
   const consultId = [...b.consults.values()][0]?.consultId
   await b.onEvent({ type: 'C2C_MESSAGE_CREATE', data: { id: 'm2', content: `/done ${sid.slice(8, 14)}`, author: { user_openid: 'u1' } } })
   check('/done 触发归档', archivedId === consultId, `${archivedId} vs ${consultId}`)
+  check('归档时要求 stopActivity（会话可能在跑）', stopActivitySeen === true, String(stopActivitySeen))
   check('回话说明已归档', (sent.at(-1) ?? '').includes('已归档'), sent.at(-1))
   check('通道已移除', b.consults.size === 0)
 }
