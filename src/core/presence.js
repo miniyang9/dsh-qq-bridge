@@ -39,6 +39,7 @@ export class Presence {
   }
 
   get state() { return this.#state }
+  get pending() { return this.#pending }
   get idleMs() { return this.#lastIdleMs }
 
   /** 判定原始意图（未防抖）：idle < 阈值 → 在场；否则离开；拿不到 → 离开 */

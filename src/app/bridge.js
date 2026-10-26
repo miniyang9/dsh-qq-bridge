@@ -232,6 +232,9 @@ export class Bridge {
 
   async start() {
     await this.#loadState()
+    // 在场采样独立于 tick：30 秒一次，回座后最多 60 秒恢复"在场"
+    this.presenceTimer = setInterval(() => { this.samplePresence().catch(() => {}) }, 30_000)
+    this.presenceTimer.unref?.()   // 不阻止进程退出
     // A26：审计保留 180 天；启动时裁剪一次（失败不影响启动）
     if (this.audit && typeof this.audit.prune === 'function') {
       this.audit.prune().catch?.(() => {})
@@ -1164,11 +1167,15 @@ export class Bridge {
     const mode = this.#mode()
     const info = this.presence.describe()
     const present = this.#present()
+    const idleMs = this.presence.idleMs
+    const pendingNote = this.presence.pending > 0 && idleMs !== null && !present && mode === 'auto'
+      ? '（检测到你回来了，等下一次采样确认，约 30 秒）'
+      : ''
     const until = this.state.mode?.until
     const left = mode === 'pc' && until ? Math.max(0, Math.round((until - this.now()) / 60_000)) : null
     return [
       `模式：${mode === 'pc' ? `静音（还剩 ${left} 分钟）` : mode === 'away' ? '始终推送' : '自动'}`,
-      `判定：${present ? '在场（不打扰）' : '离开（会推送）'}`,
+      `判定：${present ? '在场（不打扰）' : '离开（会推送）'}${pendingNote}`,
       `依据：空闲 ${info.idleText}`,
       `探针：${this.idleProbeKind}${this.idleProbeKind === 'none' && this.idleProbeReason ? `（${this.idleProbeReason}）` : ''}`,
       mode === 'auto' ? '规则：空闲 < 5 分钟视为在场，≥5 分钟视为离开' : '（手动模式，忽略空闲）',
@@ -1211,6 +1218,15 @@ export class Bridge {
       recent.length ? `最近事件：${recent.join(' → ')}` : '没有可读事件',
       '要看完整现场，请在电脑上打开该会话（桥接只读不到它的完整上下文）。',
     ].join('\n')
+  }
+
+  /** 采一次在场；变吵（→离开）立即补推压在手里的待答请求。 */
+  async samplePresence() {
+    const snap = this.presence.sample()
+    if (snap.direction === 'away') {
+      await this.#flushPending('你现在离开了，这条先补给你')
+    }
+    return snap
   }
 
   /** 当前模式（pc 到期自动回 auto）。 */
@@ -1343,11 +1359,7 @@ export class Bridge {
   /** 由定时器调用；测试也可直接调。返回这一轮发出的通知（便于断言）。 */
   async tick() {
     const sent = []
-    // 先采样在场：变吵（→离开）立即生效，并把压在手里的待答请求补推出去
-    const snap = this.presence.sample()
-    if (snap.direction === 'away') {
-      await this.#flushPending('你现在离开了，这条先补给你')
-    }
+    await this.samplePresence()
 
     for (const [id, st] of this.sessionState) {
       if (!st.turnOpen) continue
