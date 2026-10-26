@@ -136,9 +136,10 @@ export function powershellIdleProbe() {
         spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
           stdio: 'ignore', timeout: 3000, windowsHide: true,
         })
-        const n = Number(String(fs.readFileSync(out, 'utf8')).trim())
+        const rawFile = String(fs.readFileSync(out, 'utf8')).trim()
         try { fs.rmSync(out, { force: true }) } catch { /* ignore */ }
-        return Number.isFinite(n) && n >= 0 ? n : null
+        // 与管道分支同样的严格性：空文件不能当 0
+        return /^\d+$/.test(rawFile) ? Number(rawFile) : null
       } catch {
         return null
       }

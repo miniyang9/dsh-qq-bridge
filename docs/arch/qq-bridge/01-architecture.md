@@ -128,38 +128,24 @@ L2 路径图已落地：`/why` 起独立会话、可写、`/done` 后自动归�
 ## 落盘形状（按真实文件重写）
 
 ```
-
 ├─ package.json                # dsh-qq-bridge，ESM，无构建（ADR-17）
 ├─ cordis.patch.yml            # insert: { id: qq-bridge, name: dsh-qq-bridge }
 ├─ lib/index.js                # 插件入口：注册两条接缝、装配 Bridge
 ├─ src/
-│  ├─ app/bridge.js            # L2+L3 合体：WaitPoint/Answer/LabelPolicy/Delivery/发送
+│  ├─ app/
+│  │  ├─ bridge.js             # L2+L3 合体：WaitPoint/Answer/LabelPolicy 的编排
+│  │  └─ audit.js              # 审计：JSONL 追加 + 180 天裁剪
 │  ├─ core/
-  │  ├─ presence.js        # 在场判定（空闲探针）
-  │  ├─ events.js           # Event 形状
-  │  ├─ sessions.js         # 会话库读取/标题
-  │  ├─ label.js            # 标注三判据
-  │  ├─ wait-point.js       # 待答点状态机
-  │  ├─ store.js            # 原子落盘
-  │  ├─wait-point.js       # WaitPoint（内存 + restore）
-│  ├─ core/label.js            # LabelPolicy：三条判据 + findToolArgs 反查
-│  ├─ core/store.js            # JsonStore：原子写、坏文件容忍
+│  │  ├─ presence.js           # 在场判定（空闲探针：electron / powershell）
+│  │  ├─ events.js             # Event 形状与校验（kind 封闭集）
+│  │  ├─ sessions.js           # 会话库读取、标题、工作区清单
+│  │  ├─ label.js              # LabelPolicy：三条判据 + findToolArgs 反查
+│  │  ├─ wait-point.js         # WaitPoint 状态机（内存 + restore）
+│  │  └─ store.js              # JsonStore：原子写、坏文件容忍
 │  └─ transport/
 │     ├─ auth.js               # TokenStore
-│     ├─ qq.js                 # QQClient（长连/心跳/被动/主动）
+│     ├─ qq.js                 # QQClient（长连/心跳/被动/主动/撤回）
 │     └─ envelope.js           # 卡片渲染 + 命令解析（QqEnvelope）
-├─ test/
-│  ├─ s2-transport.test.mjs    # 34 条
-│  ├─ s3-seq.test.mjs          # msg_seq 递增与 4 次上限
-│  ├─ s3-order.test.mjs        # 裸词静默 + 确认先于 resolve
-│  ├─ s3-label.test.mjs        # yes <id> 要求矩阵
-│  ├─ s4-state.test.mjs        # 落盘/重启作废/去重/主动兜底
-│  ├─ s1-waterfall.test.mjs    # 接缝占位（真 cordis）
-│  ├─ s5-question.test.mjs     # 提问接缝
-│  ├─ s6-label.test.mjs        # 标注判据 + 参数反查
-│  └─ s3-loop.mjs              # 真机闭环（手工跑）
-├─ tools/openid-probe.mjs      # 取 openid 的一次性探针
-└─ docs/
 ```
 
 落盘：`%LOCALAPPDATA%\qq-bridge\state.json`（Q11）；审计 `state.audit.jsonl`（180 天裁剪）。

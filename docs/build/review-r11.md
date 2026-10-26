@@ -43,8 +43,8 @@
 | 4 | 审批「已在电脑端处理」 | `:1539` | `if (!this.#present()) this.send(...).catch(...)` | muted | 发出 |
 | 5 | 提问「已在电脑端答复」 | `:1634` | 同上 | muted | 发出 |
 
-- 在场态实测（`.tmp/r10-gate.mjs`）：上述 5 条 + 原有卡片/重连/停滞/催办全部 `muted`。
-- 离开态实测（`.tmp/r11-gate2.mjs`）：5 条新门控全部 `true`（断网摘要、重连、重启、审批已答、提问已答、咨询结束）。
+- 在场态实测（`.tmp/r10-gate.mjs`）：上述 5 条 + 原有卡片/重连/咨询结束均 `muted`；停滞与 10/30 分钟催办的代码路径同样带 `#present()`，但该探针未逐个触发（见门控表的代码核对）。
+- 离开态实测（`.tmp/r11-gate2.mjs`）：6 条门控消息全部 `true`（5 条新增 + 重连）。
 - **没有吞掉该发的**：同在在场态下，`/pc 60` 回执「已静音 60 分钟」、`/say` 确认回执「[wp-3] 将要发送…」、`/ans` 回执、`/mode` 回执、`sayGoodbye` 均照发；`/pc` 的被动回执走 `data.id`，不经过 `#present()`，与设计一致。
 - 5 分钟兜底（`:1370`）仍故意不门控；离开补推（`:1175`）仍按 `away` 转换触发。
 
@@ -95,7 +95,7 @@
 
 ## 基线
 
-按 `docs/build/baseline.md` 的复跑方法，逐套单跑、按进程退出码（不做文本匹配）：
+按 `docs/build/baseline.md` 的复跑方法，逐套单跑、按进程退出码（不做文本匹配；下表命令把套件输出重定向，仅取退出码）：
 
 ```powershell
 $node = "$env:USERPROFILE\.dsh\dsh-runtimes\dsh-primary-runtime\dependencies\node\bin\node.exe"   # v24.21.0
