@@ -169,7 +169,16 @@ export function powershellIdleProbe() {
     const nowMs = () => Date.now()
 
     const probeOnce = () => {
-      // 方式一：PowerShell 脚本文件（避免嵌套引号）
+      // 方式一：直接读管道（DSH 沙箱允许；本机测试环境会 EPERM，自动退方式二）
+      try {
+        const pr = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
+          encoding: 'utf8', timeout: 8000, windowsHide: true,
+        })
+        const rawPipe = String(pr?.stdout ?? '').trim()
+        if (!pr?.error && /^\d+$/.test(rawPipe)) return Number(rawPipe)
+      } catch { /* 走文件方式 */ }
+
+      // 方式二：PowerShell 脚本文件（管道不可用时）
       try { fs.mkdirSync(outDir, { recursive: true }); fs.writeFileSync(ps1, script, 'utf8') } catch { /* ignore */ }
       const ps = runToFile(`powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ${ps1}`, outFile)
       const raw = String(ps.text ?? '').trim()
