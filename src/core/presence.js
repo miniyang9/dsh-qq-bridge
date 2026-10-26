@@ -121,8 +121,26 @@ export function powershellIdleProbe() {
   }
 }
 
-/** 生产用默认探针：仅 Electron 环境启用（测试/普通 Node 返回 null，避免每次采样起 PowerShell）。 */
+/**
+ * 选择探针并给出"走的哪条路"，便于 /mode 显示与排障。
+ *   electron  → powerMonitor（零开销）
+ *   powershell→ GetLastInputInfo（每次采样起一个进程，约几百毫秒）
+ *   none      → 都不可用（判定会退化为"离开"）
+ * 注意：不能只在 process.versions.electron 存在时才试 PowerShell——
+ * 插件可能跑在 utility/worker 进程里，那里没有 electron 但 PowerShell 是可用的。
+ */
+export function detectIdleProbe() {
+  const viaElectron = electronIdleProbe()
+  if (viaElectron) return { kind: 'electron', probe: viaElectron }
+  if (process.platform === 'win32') {
+    const viaPs = powershellIdleProbe()
+    if (viaPs) return { kind: 'powershell', probe: viaPs }
+    return { kind: 'none', probe: null, reason: 'windows 上 PowerShell 兜底也不可用' }
+  }
+  return { kind: 'none', probe: null, reason: `platform=${process.platform}，无可用探针` }
+}
+
+/** 兼容旧调用：只要探针函数。 */
 export function defaultIdleProbe() {
-  if (!process.versions?.electron) return null
-  return electronIdleProbe() ?? powershellIdleProbe() ?? null
+  return detectIdleProbe().probe
 }

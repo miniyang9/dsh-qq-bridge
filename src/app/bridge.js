@@ -13,7 +13,7 @@ import { classify, findToolArgs } from '../core/label.js'
 import { isEvent } from '../core/events.js'   // Event 形状有测试，但生产路径尚未投影成 Event（见 02）
 import { Audit } from './audit.js'
 import { listStoredSessions, humanAge, defaultSessionsRoot, listKnownWorkspaces } from '../core/sessions.js'
-import { Presence, PRESENCE, defaultIdleProbe } from '../core/presence.js'
+import { Presence, PRESENCE, detectIdleProbe } from '../core/presence.js'
 
 /**
  * 一张票 → 审批结局。批准/yes 都算允许；其余算拒绝。
@@ -176,8 +176,11 @@ export class Bridge {
     this.maxNoticesPerDay = 10
     this.sayReplyChars = sayReplyChars
     // 在场判定：只有空闲一维；探针可由测试注入（idleProbe）
+    const probePick = idleProbe ? { kind: 'injected', probe: idleProbe } : detectIdleProbe()
+    this.idleProbeKind = probePick.kind
+    this.idleProbeReason = probePick.reason ?? null
     this.presence = new Presence({
-      probe: idleProbe ?? (defaultIdleProbe() ?? (() => null)),
+      probe: probePick.probe ?? (() => null),
       now: () => this.now(),
       idleThresholdMs: presenceIdleMs,
       confirmSamples: 2,
@@ -1155,6 +1158,7 @@ export class Bridge {
       `模式：${mode === 'pc' ? `静音（还剩 ${left} 分钟）` : mode === 'away' ? '始终推送' : '自动'}`,
       `判定：${present ? '在场（不打扰）' : '离开（会推送）'}`,
       `依据：空闲 ${info.idleText}`,
+      `探针：${this.idleProbeKind}${this.idleProbeKind === 'none' && this.idleProbeReason ? `（${this.idleProbeReason}）` : ''}`,
       mode === 'auto' ? '规则：空闲 < 5 分钟视为在场，≥5 分钟视为离开' : '（手动模式，忽略空闲）',
     ].join('\n')
   }
