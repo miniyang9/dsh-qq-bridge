@@ -2,7 +2,7 @@ frame: docs/frame/qq-bridge.md
 
 # 架构 · qq-bridge（v6：骨架实测回写）
 
-> **文档状态（2026-10-25）**：本文件的"实现进度"描述已过期——`/list` `/progress` `/new` `/use` `/wake` `/say` `/why` `/done` `/ans` `/yes` `/no` 全部落地，审计、双通道审批、卡片合并、咨询通道与自动归档也已实现，离线测试 56 套全绿。
+> **文档状态（2026-10-25）；测试基线以 `docs/build/baseline.md` 为准**：本文件的"实现进度"描述已过期——`/list` `/progress` `/new` `/use` `/wake` `/say` `/why` `/done` `/ans` `/yes` `/no` 全部落地，审计、双通道审批、卡片合并、咨询通道与自动归档也已实现，离线测试 56 套全绿。
 > 接缝返回的审批结局必须使用 DSH 的封闭词表 **`allowed-once` / `rejected` / `cancelled` / `unavailable`**；早期误用 `allowed` 曾导致「电脑点允许」与「手机 /yes」两条通道的批准全部失效。
 > 进度与证据以 `docs/build/qq-bridge.md`（台账）与 `review-r1…r9.md` 为准。
 
