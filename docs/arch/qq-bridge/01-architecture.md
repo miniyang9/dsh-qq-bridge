@@ -2,7 +2,7 @@ frame: docs/frame/qq-bridge.md
 
 # 架构 · qq-bridge（v6：骨架实测回写）
 
-> **文档状态（2026-10-25）**：本文件的"实现进度"描述已过期——`/list` `/progress` `/new` `/use` `/wake` `/say` `/why` `/done` `/ans` `/yes` `/no` 全部落地，审计、双通道审批、卡片合并、咨询通道与自动归档也已实现，离线测试 52 套全绿。
+> **文档状态（2026-10-25）**：本文件的"实现进度"描述已过期——`/list` `/progress` `/new` `/use` `/wake` `/say` `/why` `/done` `/ans` `/yes` `/no` 全部落地，审计、双通道审批、卡片合并、咨询通道与自动归档也已实现，离线测试 56 套全绿。
 > 接缝返回的审批结局必须使用 DSH 的封闭词表 **`allowed-once` / `rejected` / `cancelled` / `unavailable`**；早期误用 `allowed` 曾导致「电脑点允许」与「手机 /yes」两条通道的批准全部失效。
 > 进度与证据以 `docs/build/qq-bridge.md`（台账）与 `review-r1…r9.md` 为准。
 
@@ -84,11 +84,11 @@ L2 路径图已落地：`/why` 起独立会话、可写、`/done` 后自动归�
 | A9a/A10 迟到与乱序答复 | `s17-late` | ✅ 脱网通过 |
 | A11 标注可重放 | `test/s6-label.test.mjs`（三条判据）+ `s3-label`（yes 矩阵） | ✅ 脱网；真机未验 |
 | A12/A13 睡眠/断电 | `test/s4-state.test.mjs`（重启作废） | ✅ 脱网；睡眠未测 |
-| A14/A16 挂死/崩溃拉起 | 无 | ⛔ 未测 |
-| A19/A21 L2 调查 | 无 | ⛔ 未做 |
+| A14/A16 挂死/崩溃拉起 | `s18-watchdog`（WS 重连） | ⛔ **未实现**：无进程守护；A14 与心跳 41.25s 冲突 |
+| A19′/A21 L2 调查 | `s12-consult` / `s15-writes` / `s47` | ✅ 脱网通过（可写、每次写审计、`/done` 归档） |
 | A22/A23 `/say` | `s5-say` / `s30-say-text` | ✅ 脱网通过；真机已验 |
-| A26 审计 | 无（`audit.js` 不存在） | ⛔ 未做 |
-| A30 停滞 | 无 | ⛔ 未做 |
+| A26 审计 | `s8-audit` / `s41-audit-conservation` | ✅ 已实现（180 天裁剪在启动时调用） |
+| A30 停滞 | `s14-notify` / `s23-format` | ✅ 已实现（工具执行中豁免） |
 
 **结论：A1–A30 里真正有证据的是一小半。** 这张表就是当前真实进度。
 
@@ -155,7 +155,7 @@ L2 路径图已落地：`/why` 起独立会话、可写、`/done` 后自动归�
 └─ docs/
 ```
 
-落盘：`%LOCALAPPDATA%\qq-bridge\state.json`（Q11）。审计文件**尚不存在**（债 5）。
+落盘：`%LOCALAPPDATA%\qq-bridge\state.json`（Q11）；审计 `state.audit.jsonl`（180 天裁剪）。
 
 ## §10 未实现项（如实记录，2026-10-25）
 

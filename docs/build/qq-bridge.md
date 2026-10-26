@@ -1,4 +1,4 @@
-状态：开源已发布（github.com/miniyang9/dsh-qq-bridge）· 52 套离线测试全绿 · 真机验证与发布闸门未完成
+状态：开源已发布（github.com/miniyang9/dsh-qq-bridge）· 56 套离线测试全绿 · 真机验证与发布闸门未完成
 
 # 构建台账 · qq-bridge
 
