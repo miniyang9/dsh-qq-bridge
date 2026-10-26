@@ -737,7 +737,8 @@ export class Bridge {
       const sc = this.getSessionController()
       const agents = this.getAgents()
       if (!sc || !agents) {
-        await this.send('拿不到 sessionController/agents 服务，咨询通道不可用。', data.id)
+        const brief = await this.#fallbackSummary(target.id)
+        await this.send(`咨询不可用（拿不到 sessionController/agents）。这是摘要，不是现场调查：\n${brief}`, data.id)
         return
       }
       const createFn = typeof sc.create === 'function' ? sc.create.bind(sc)
@@ -1181,6 +1182,29 @@ export class Bridge {
     }
     if (n > 0) await this.#persist().catch(() => {})
     return n
+  }
+
+  /** A20：咨询不可用时的 L1 摘要（只用本地已知信息，不假装调查过）。 */
+  async #fallbackSummary(id) {
+    const rec = this.sessions.get(id)
+    const session = rec?.agent?.session
+    const alive = rec !== undefined && rec !== null
+    const busy = isBusy(session)
+    const open = this.points.list().filter((p) => p.status === 'open').length
+    const recent = []
+    if (session && typeof session.eventAt === 'function') {
+      const end = Number(session.seq ?? 0)
+      for (let i = end - 1; i >= 0 && i >= end - 30 && recent.length < 3; i -= 1) {
+        const ev = session.eventAt(i)
+        if (ev?.type) recent.push(ev.type)
+      }
+    }
+    return [
+      `会话 ${shortOf(id)}：${alive ? (busy ? '运行中' : '空闲') : '未加载'}`,
+      `待答请求：${open} 个`,
+      recent.length ? `最近事件：${recent.join(' → ')}` : '没有可读事件',
+      '要看完整现场，请在电脑上打开该会话（桥接只读不到它的完整上下文）。',
+    ].join('\n')
   }
 
   /** 当前模式（pc 到期自动回 auto）。 */
