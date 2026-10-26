@@ -23,6 +23,8 @@ export class Presence {
   #state = PRESENCE.UNKNOWN
   #pending = 0
   #lastIdleMs = null
+  #nullStreak = 0
+  #nullHold = 2
 
   /**
    * @param {object} opts
@@ -31,11 +33,12 @@ export class Presence {
    * @param {number} [opts.idleThresholdMs] 默认 5 分钟
    * @param {number} [opts.confirmSamples] 从离开回到在场需要的连续采样数，默认 2
    */
-  constructor({ probe, now = Date.now, idleThresholdMs = 5 * 60_000, confirmSamples = 2 } = {}) {
+  constructor({ probe, now = Date.now, idleThresholdMs = 5 * 60_000, confirmSamples = 2, nullHold = 2 } = {}) {
     this.#probe = probe
     this.#now = now
     this.#idleThresholdMs = idleThresholdMs
     this.#confirmSamples = confirmSamples
+    this.#nullHold = nullHold
   }
 
   get state() { return this.#state }
@@ -47,7 +50,7 @@ export class Presence {
     let idle = null
     try { idle = this.#probe?.() ?? null } catch { idle = null }
     this.#lastIdleMs = typeof idle === 'number' && Number.isFinite(idle) ? idle : null
-    if (this.#lastIdleMs === null) return PRESENCE.AWAY   // 失败安全：宁可多推
+    if (this.#lastIdleMs === null) return PRESENCE.UNKNOWN   // 读不到：先保持原判，连续失败后才当离开
     return this.#lastIdleMs < this.#idleThresholdMs ? PRESENCE.PRESENT : PRESENCE.AWAY
   }
 
@@ -55,7 +58,19 @@ export class Presence {
   sample() {
     const next = this.#verdict()
     const prev = this.#state
-    if (next === prev) { this.#pending = 0; return { changed: false, prev, next } }
+    if (next === prev && next !== PRESENCE.UNKNOWN) { this.#pending = 0; this.#nullStreak = 0; return { changed: false, prev, next } }
+
+    // 读不到值：保持原判（避免 PowerShell 偶发失败把"在场"打成"离开"）
+    if (next === PRESENCE.UNKNOWN) {
+      this.#nullStreak += 1
+      if (this.#state !== PRESENCE.UNKNOWN && this.#nullStreak < this.#nullHold) {
+        return { changed: false, prev, next: prev, unknownHold: true, streak: this.#nullStreak }
+      }
+      this.#state = PRESENCE.AWAY
+      this.#pending = 0
+      return { changed: prev !== PRESENCE.AWAY, prev, next: PRESENCE.AWAY, direction: prev === PRESENCE.AWAY ? undefined : 'away' }
+    }
+    this.#nullStreak = 0
 
     // 变吵（→离开）立即生效；变安静（→在场）需要连续确认
     if (next === PRESENCE.AWAY) {
@@ -115,7 +130,10 @@ export function powershellIdleProbe() {
       '[math]::Floor(([Environment]::TickCount - $l.dwTime))',
     ].join('; ')
 
-    return () => {
+    let lastGood = null   // { idle, at }
+    const nowMs = () => Date.now()
+
+    const probeOnce = () => {
       // 方式一：读管道（正常环境最快）；DSH_IDLE_FORCE_FILE=1 可强制走文件方式
       try {
         if (process.env.DSH_IDLE_FORCE_FILE === '1') throw new Error('forced file mode')
@@ -144,6 +162,26 @@ export function powershellIdleProbe() {
       } catch {
         return null
       }
+    }
+
+    return () => {
+      let v = null
+      try { v = probeOnce() } catch { v = null }
+      if (v !== null) {
+        lastGood = { idle: v, at: nowMs() }
+        return v
+      }
+      // 失败重试一次（PowerShell 偶尔超时/EPERM）
+      try { v = probeOnce() } catch { v = null }
+      if (v !== null) {
+        lastGood = { idle: v, at: nowMs() }
+        return v
+      }
+      // 仍失败：90 秒内用最近成功值 + 时间差推平，避免"偶尔读不到"把判定打回离开
+      if (lastGood && nowMs() - lastGood.at <= 90_000) {
+        return lastGood.idle + (nowMs() - lastGood.at)
+      }
+      return null
     }
   } catch {
     return null
