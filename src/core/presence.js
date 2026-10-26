@@ -238,6 +238,15 @@ export function probeDiagnostics() {
   const out = []
   try {
     out.push(`electron=${process.versions?.electron ?? '无'}；平台=${process.platform}`)
+  try {
+    const req = createRequire(import.meta.url)
+    const em = req('electron')
+    const kind = typeof em
+    const hasMon = kind === 'object' && em && typeof em.powerMonitor === 'object' ? '有' : '无'
+    out.push(`require(electron): type=${kind} powerMonitor=${hasMon} keys=${kind === 'object' && em ? Object.keys(em).slice(0, 8).join(',') : ''}`)
+  } catch (e) {
+    out.push(`require(electron): 抛异常 ${String(e?.code ?? e?.message).slice(0, 60)}`)
+  }
   } catch { out.push('electron=读取失败') }
 
   let cp = null
@@ -253,6 +262,35 @@ export function probeDiagnostics() {
     } catch (e) {
       out.push(`${label}: 抛异常 ${String(e?.code ?? e?.message).slice(0, 60)}`)
     }
+  }
+
+  // 跑"真实脚本"，把 stderr 也带出来（Add-Type 在受限语言模式下会在这里报错）
+  const realScript = [
+    '$sig = \'[DllImport("user32.dll")] public static extern bool GetLastInputInfo(ref LASTINPUTINFO p); [StructLayout(LayoutKind.Sequential)] public struct LASTINPUTINFO { public uint cbSize; public uint dwTime; }\'',
+    'Add-Type -MemberDefinition $sig -Name Idle -Namespace Win32 -ErrorAction Stop',
+    '$l = New-Object Win32.Idle+LASTINPUTINFO',
+    '$l.cbSize = [System.Runtime.InteropServices.Marshal]::SizeOf($l)',
+    '[void][Win32.Idle]::GetLastInputInfo([ref]$l)',
+    '[math]::Floor(([Environment]::TickCount - $l.dwTime))',
+  ].join('; ')
+  try {
+    const r = cp.spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', realScript], {
+      encoding: 'utf8', timeout: 8000, windowsHide: true,
+    })
+    out.push(`realScript: status=${r.status} out=${JSON.stringify(String(r.stdout ?? '').trim().slice(0, 40))} err=${JSON.stringify(String(r.stderr ?? '').trim().slice(0, 160))}`)
+  } catch (e) {
+    out.push(`realScript: 抛异常 ${String(e?.code ?? e?.message).slice(0, 80)}`)
+  }
+
+  // 不需要编译的兜底：读光标位置（能证明 PS 与 .NET 可用，但只能反映鼠标）
+  try {
+    const cur = cp.spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command',
+      'Add-Type -AssemblyName System.Windows.Forms; $p=[System.Windows.Forms.Cursor]::Position; "$($p.X),$($p.Y)"'], {
+      encoding: 'utf8', timeout: 8000, windowsHide: true,
+    })
+    out.push(`cursor: status=${cur.status} out=${JSON.stringify(String(cur.stdout ?? '').trim().slice(0, 20))} err=${JSON.stringify(String(cur.stderr ?? '').trim().slice(0, 80))}`)
+  } catch (e) {
+    out.push(`cursor: 抛异常 ${String(e?.code ?? e?.message).slice(0, 60)}`)
   }
 
   tryRun('echo(pipe)', 'cmd.exe', ['/c', 'echo ok'])
