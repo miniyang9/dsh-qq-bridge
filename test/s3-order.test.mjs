@@ -66,7 +66,7 @@ check(confirmIdx >= 0, '确认消息已发出', order.join(','))
 check(resolveIdx >= 0 && confirmIdx >= 0, '确认与结算都发生（顺序改为先结算后回执）', `confirm@${confirmIdx} resolve@${resolveIdx}`)
 
 const outcome = await approval
-check(outcome === 'allowed', '审批结果为 allowed', outcome)
+check(outcome === 'allowed-once', '审批结果为 allowed', outcome)
 
 console.log(`\n${failures.length === 0 ? 'S3-order PASS' : 'S3-order FAIL'}  (${failures.length} 条失败)`)
 process.exit(failures.length === 0 ? 0 : 1)

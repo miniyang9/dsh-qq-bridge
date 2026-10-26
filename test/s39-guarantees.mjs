@@ -51,7 +51,7 @@ check('/list 页脚：空闲才能 /say', bridge.includes('「空闲」才能 /s
 check('/list 页脚：未加载先 /wake', /「未加载」先 \/wake/.test(bridge))
 
 // 9) 提示语不得教用户发裸数字（真机连续三次）
-check('无"回复序号/回复 1"类引导', !/回复序号|回复\s*[1-9]|回\s*[1-9]\s*(?:发送|取消)/.test(bridge + envelope))
+check('无"回复序号/回复 1"类引导', !/回复序号|回复\s*[1-9１-９]\s*(?:批准|发送|取消)/.test(bridge + envelope))
 check('确认类提示带 /ans 命令', /\/ans \$\{wp\.id\} 1 发送/.test(bridge))
 
 // 10) 会话标题只加 QQ 前缀

@@ -97,7 +97,7 @@ const agent = (sid, extra = {}) => ({ id: sid, session: { id: sid, seq: 0, event
   const second = sent.at(-1) ?? ''
   check('BB-51', second.includes('已处理') || second.includes('已处理过'), '第 2 条回话含「已处理」', second.slice(0, 40))
   check('BB-51', b.points.get(id).status === 'resolved', '状态只被改 1 次', b.points.get(id).status)
-  check('BB-51', (await p) === 'allowed', '审批结果为 allowed')
+  check('BB-51', (await p) === 'allowed-once', '审批结果为 allowed')
 }
 
 // ---------- BB-62：三种答复的回执文案 ----------
@@ -157,7 +157,7 @@ const agent = (sid, extra = {}) => ({ id: sid, session: { id: sid, seq: 0, event
   check('BB-71', r1.includes('/yes') && r1.includes(id), '回话指向 /yes 与 id', r1.slice(0, 50))
   await inbound(`/yes ${id}`, 'm2')
   check('BB-71', b.points.get(id).status === 'resolved', '/yes 后状态变化 ≥1 次', b.points.get(id).status)
-  check('BB-71', (await p) === 'allowed', '最终 allowed')
+  check('BB-71', (await p) === 'allowed-once', '最终 allowed')
 }
 
 const fail = results.filter((r) => !r.ok)

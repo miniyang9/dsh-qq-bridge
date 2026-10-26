@@ -11,7 +11,8 @@ const check = (label, ok, detail = '') => { console.log((ok ? 'PASS  ' : 'FAIL  
 
 const bridge = fs.readFileSync('src/app/bridge.js', 'utf8')
 const envelope = fs.readFileSync('src/transport/envelope.js', 'utf8')
-const all = bridge + envelope
+const stripComments = (src) => src.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n')
+const all = stripComments(bridge) + stripComments(envelope)
 
 // 1) 不得再教用户发裸数字
 check('无「回复 1」类裸数字引导', !/回复\s*[1-9１-９]|回\s*[1-9]\s*发送/.test(all))

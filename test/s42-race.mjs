@@ -39,7 +39,7 @@ const inbound = (b, content, id) => b.onEvent({ type: 'C2C_MESSAGE_CREATE', data
   await new Promise((r) => setTimeout(r, 40))
   const rows = read(auditPath)
   check('审批：恰好 1 条审计', rows.length === 1, `audits=${rows.length}`)
-  check('审批：结局与生效票一致', outcome === 'allowed', String(outcome))
+  check('审批：结局与生效票一致', outcome === 'allowed-once', String(outcome))
   const acked = sent.filter((s) => s.includes('已收到')).length
   const notified = sent.filter((s) => s.includes('已在电脑端处理')).length
   check('审批：不同时回两种回执', !(acked > 0 && notified > 0), `已收到=${acked} 已在电脑端=${notified}`)
@@ -88,7 +88,7 @@ const inbound = (b, content, id) => b.onEvent({ type: 'C2C_MESSAGE_CREATE', data
   const rows = read(auditPath)
   check('反向：恰好 1 条审计', rows.length === 1, `audits=${rows.length}`)
   check('反向：不得回"已在电脑端处理"', !sent.some((x) => x.includes('已在电脑端处理')), sent.slice(-2).join(' | '))
-  check('反向：结局与手机票一致', outcome === 'allowed', String(outcome))
+  check('反向：结局与手机票一致', outcome === 'allowed-once', String(outcome))
 }
 
 console.log('\n' + (failures.length === 0 ? 'S42 PASS' : 'S42 FAIL') + ' (' + failures.length + ')')

@@ -70,7 +70,7 @@ const agent = (sid) => ({ id: sid, session: { id: sid, seq: 0, eventAt: () => nu
   await inbound(`/yes ${id1}`, 'm2')
   check('BB-52', b.points.get(id1).status === 'resolved', 'P1 随后 resolved', b.points.get(id1).status)
   const outcomes = await Promise.all([p1, p2])
-  check('BB-52', outcomes.every((o) => o === 'allowed'), '两次都判 allowed（错绑 0 次）', outcomes.join(','))
+  check('BB-52', outcomes.every((o) => o === 'allowed-once'), '两次都判 allowed（错绑 0 次）', outcomes.join(','))
   const audit = fs.readFileSync(b.audit.file, 'utf8').trim().split('\n').map(JSON.parse)
   // 契约变化（B7）：审计 requestId 优先记 callId（P1/P2），待答点 id 记在 wpId
   const refs = new Set(audit.flatMap((e) => [e.requestId, e.wpId]))

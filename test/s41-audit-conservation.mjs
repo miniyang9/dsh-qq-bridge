@@ -38,7 +38,7 @@ const req = (callId) => ({ agent: { session: { id: 's' } }, toolName: 'fs.read',
   check('审计记录的是 GUI 的票', JSON.parse(rows[0]?.outcome ?? '{}').via === 'gui', rows[0]?.outcome)
   check('迟到的手机票没有回"已收到"', !sent.some((s) => s.includes('已收到')), sent.slice(-2).join(' | '))
   check('迟到的手机票得到"已被处理/作废"', sent.some((s) => s.includes('已被处理') || s.includes('已作废')), sent.slice(-2).join(' | '))
-  check('结果仍为 allowed', outcome === 'allowed', String(outcome))
+  check('结果仍为 allowed', outcome === 'allowed-once', String(outcome))
 }
 
 // 2) QQ 先答 → 恰好 1 条，且是手机那票

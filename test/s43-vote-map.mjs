@@ -14,13 +14,13 @@ const check = (l, ok, d = '') => { console.log((ok ? 'PASS  ' : 'FAIL  ') + l + 
 const { outcomeFromVote, decisionFromOther, Bridge } = await import('../src/app/bridge.js')
 
 // ---------- 1) 票 → 结局 ----------
-check('yes → allowed', outcomeFromVote('yes') === 'allowed')
-check('批准 → allowed', outcomeFromVote('批准') === 'allowed')
+check('yes → allowed', outcomeFromVote('yes') === 'allowed-once')
+check('批准 → allowed', outcomeFromVote('批准') === 'allowed-once')
 check('拒绝 → rejected', outcomeFromVote('拒绝') === 'rejected')
 check('no → rejected', outcomeFromVote('no') === 'rejected')
 
 // ---------- 2) 迟到方服从已生效票 ----------
-check('手机已 yes → allowed', decisionFromOther({ status: 'resolved', text: 'yes' }) === 'allowed')
+check('手机已 yes → allowed', decisionFromOther({ status: 'resolved', text: 'yes' }) === 'allowed-once')
 check('手机已 拒绝 → rejected', decisionFromOther({ status: 'resolved', text: '拒绝' }) === 'rejected')
 check('对方未结算 → cancelled', decisionFromOther({ status: 'dropped' }) === 'cancelled')
 check('对方为 null → cancelled', decisionFromOther(null) === 'cancelled')
@@ -48,7 +48,7 @@ for (const [cmd, label] of [['/yes', 'yes'], ['/ans', 'ans1']]) {
   const outcome = await p
   const rows = read(auditPath)
   const vote = rows[0] ? JSON.parse(rows[0].outcome) : null
-  check(`${cmd} → allowed`, outcome === 'allowed', String(outcome))
+  check(`${cmd} → allowed`, outcome === 'allowed-once', String(outcome))
   check(`${cmd} 审计 1 条`, rows.length === 1, `audits=${rows.length}`)
   check(`${cmd} 审计票与结局一致`, outcomeFromVote(vote?.text) === outcome, `vote=${vote?.text}`)
 }

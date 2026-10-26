@@ -52,7 +52,7 @@ await new Promise((r) => setTimeout(r, 30))
 const auditPath = statePath.replace(/\.json$/, '') + '.audit.jsonl'
 const rows = fs.existsSync(auditPath) ? fs.readFileSync(auditPath, 'utf8').trim().split('\n').filter(Boolean).map(JSON.parse) : []
 
-check('调用点按已生效票返回 allowed（/yes 不得被判 rejected）', outcome === 'allowed', String(outcome))
+check('调用点按已生效票返回 allowed（/yes 不得被判 rejected）', outcome === 'allowed-once', String(outcome))
 check('审计恰好 1 条', rows.length === 1, `audits=${rows.length}`)
 check('审计票为 yes', JSON.parse(rows[0]?.outcome ?? '{}').text === 'yes', rows[0]?.outcome)
 check('不向手机发"已在电脑端处理"', !sent.some((s) => s.includes('已在电脑端处理')), sent.slice(-2).join(' | '))

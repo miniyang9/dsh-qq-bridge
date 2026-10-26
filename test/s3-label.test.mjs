@@ -43,7 +43,7 @@ const inbound = (bridge, content, id) =>
   const p = bridge.handleApproval({ agent: { session: { id: 's' } }, toolName: 'fs.read', args: {} }, { timeoutMs: 3000 })
   await new Promise((r) => setTimeout(r, 10))
   await inbound(bridge, '/ans ' + bridge.points.list().at(-1).id + ' 1', 'm1')
-  check((await p) === 'allowed', '普通请求：回 1 → allowed')
+  check((await p) === 'allowed-once', '普通请求：回 1 → allowed')
 }
 
 // 2) 被标注请求：回 1 不受理，仍 open；回 yes <id> 才批准
@@ -63,7 +63,7 @@ const inbound = (bridge, content, id) =>
 
   await inbound(bridge, `/yes ${id}`, 'm2')
   check(bridge.points.get(id).status === 'resolved', '被标注请求：yes <id> 后 resolved')
-  check((await p) === 'allowed', '被标注请求：yes <id> → allowed')
+  check((await p) === 'allowed-once', '被标注请求：yes <id> → allowed')
 }
 
 console.log(`\n${failures.length === 0 ? 'S3-label PASS' : 'S3-label FAIL'}  (${failures.length} 条失败)`)

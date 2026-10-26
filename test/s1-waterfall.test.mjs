@@ -11,7 +11,9 @@ import './_setup.mjs'
  */
 import { pathToFileURL } from 'node:url';
 
-const ASAR = '/home/<user>/AppData/Local/Programs/DeepSeek Harness/resources/app.asar/dsh/node_modules/@deepseek-ai';
+import os from 'node:os'
+import path from 'node:path'
+const ASAR = path.join(os.homedir(), 'AppData', 'Local', 'Programs', 'DeepSeek Harness', 'resources', 'app.asar', 'dsh', 'node_modules', '@deepseek-ai');
 const cordisUrl = pathToFileURL(`${ASAR}/cordis/lib/index.js`).href;
 
 const failures = [];

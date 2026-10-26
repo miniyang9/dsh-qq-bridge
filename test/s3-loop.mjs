@@ -69,7 +69,7 @@ const wp = bridge.points.list().at(-1)
 console.log(`\noutcome = ${outcome}   耗时 = ${ms}ms`)
 console.log(`waitpoint = ${JSON.stringify({ id: wp?.id, status: wp?.status, answer: wp?.answer?.text })}`)
 
-const ok = outcome === 'allowed'
+const ok = outcome === 'allowed-once'
 console.log(ok ? '\nS3 PASS' : '\nS3 FAIL（期望 allowed）')
 await bridge.client.stop()
 process.exit(ok ? 0 : 1)

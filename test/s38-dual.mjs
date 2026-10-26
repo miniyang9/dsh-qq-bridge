@@ -24,7 +24,7 @@ const req = { agent: { session: { id: 's' } }, toolName: 'fs.read', callId: 'c',
   const id = b.points.list().at(-1).id
   await b.onEvent({ type: 'C2C_MESSAGE_CREATE', data: { id: 'm1', content: `/yes ${id}`, author: { user_openid: 'u1' } } })
   const outcome = await p
-  check('QQ 先答 → allowed', outcome === 'allowed' || outcome === 'allowed-once', String(outcome))
+  check('QQ 先答 → allowed', outcome === 'allowed-once' || outcome === 'allowed-once', String(outcome))
   // GUI 后来点“关闭”→ reject；必须被吞掉
   guiReject(new Error('approval request was aborted'))
   await new Promise((r) => setTimeout(r, 20))
@@ -61,7 +61,7 @@ const req = { agent: { session: { id: 's' } }, toolName: 'fs.read', callId: 'c',
   const id = b.points.list().at(-1).id
   await b.onEvent({ type: 'C2C_MESSAGE_CREATE', data: { id: 'm3', content: `/yes ${id}`, author: { user_openid: 'u1' } } })
   const outcome = await p
-  check('无 next 时行为不变', outcome === 'allowed' || outcome === 'allowed-once', String(outcome))
+  check('无 next 时行为不变', outcome === 'allowed-once' || outcome === 'allowed-once', String(outcome))
 }
 
 console.log('\n' + (failures.length === 0 ? 'S38 PASS' : 'S38 FAIL') + ' (' + failures.length + ')')

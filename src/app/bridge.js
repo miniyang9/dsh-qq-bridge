@@ -795,6 +795,7 @@ export class Bridge {
   }
 
   async #waitAgent(agents, id, tries = 20) {
+    if (agents === null || agents === undefined) return null   // 服务不在时不要崩，交给调用方报错
     for (let i = 0; i < tries; i += 1) {
       const a = agents.get?.(id)
       if (a) return a
@@ -1512,6 +1513,8 @@ export class Bridge {
         && typeof first.outcome === 'string'
         && first.outcome !== 'unavailable'
       if (guiDecided) {
+        // 兼容旧词：GUI/旧版本可能仍返回 'allowed'，对外一律输出 allowed-once
+        const guiOutcome = first.outcome === 'allowed' ? 'allowed-once' : first.outcome
         // N2：drop 返回 false 表示手机那票已经先结算了——此时以已生效的结局为准
         if (!this.points.drop(wp.id, 'answered-on-gui')) {
           const other = await qq
@@ -1526,10 +1529,10 @@ export class Bridge {
           card: wp.meta?.card ?? null,
           evidenceViewed: wp.meta?.evidenceViewed === true,
           evidenceMissing: wp.meta?.evidenceMissing === true,
-          outcome: JSON.stringify({ via: 'gui', outcome: first.outcome }),
+          outcome: JSON.stringify({ via: 'gui', outcome: guiOutcome }),
         })
-        this.send(`已在电脑端处理（${first.outcome}），这条不用再回手机。`, null).catch(() => {})
-        return first.outcome
+        this.send(`已在电脑端处理（${guiOutcome}），这条不用再回手机。`, null).catch(() => {})
+        return guiOutcome
       }
       settled = first !== null && first.by === 'qq' ? first : await qq
     } else {

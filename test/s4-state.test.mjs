@@ -45,7 +45,7 @@ function makeBridge(client, file) {
   const p = b.handleApproval({ agent: { session: { id: 's' } }, toolName: 'fs.read', callId: 'c0', reversible: true }, { timeoutMs: 3000 })
   await new Promise((r) => setTimeout(r, 20))
   await b.onEvent({ type: 'C2C_MESSAGE_CREATE', data: { id: 'm1', content: '/ans ' + b.points.list().at(-1).id + ' 1', author: { user_openid: 'u1' } } })
-  check((await p) === 'allowed', '审批闭环仍为 allowed')
+  check((await p) === 'allowed-once', '审批闭环仍为 allowed')
   await new Promise((r) => setTimeout(r, 50))
 
   const saved = JSON.parse(fs.readFileSync(file, 'utf8'))
