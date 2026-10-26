@@ -10,7 +10,7 @@ import { renderCard, renderQuestionCard, parseCommand, dedupeKey } from '../tran
 import { WaitPointStore } from '../core/wait-point.js'
 import { JsonStore, defaultStatePath } from '../core/store.js'
 import { classify, findToolArgs } from '../core/label.js'
-import { approvalEvent, questionEvent, isEvent } from '../core/events.js'
+import { isEvent } from '../core/events.js'   // Event 形状有测试，但生产路径尚未投影成 Event（见 02）
 import { Audit } from './audit.js'
 import { listStoredSessions, humanAge, defaultSessionsRoot, listKnownWorkspaces } from '../core/sessions.js'
 import { Presence, PRESENCE, defaultIdleProbe } from '../core/presence.js'
@@ -1078,14 +1078,16 @@ export class Bridge {
           ? '本次改动：无'
           : `本次改动：${writes.length} 次写操作${paths.length ? '（' + paths.slice(0, 5).join('、') + '）' : ''}`
 
-        if (writes.length > 0) {
+        // A19′：每一次写操作各写一条审计（上限 50 条，防极端情况撑爆）
+        for (const w of writes.slice(0, 50)) {
           await this.audit.append({
             requestId: entry.consultId,
+            wpId: entry.consultId,
             openid: null,
             at: this.now(),
-            card: { kind: 'consult-write', target: targetId },
-            evidenceViewed: false,
-            outcome: JSON.stringify(writes.slice(0, 20)),
+            card: { kind: 'consult-write', target: targetId, tool: w.tool },
+            evidenceViewed: true,
+            outcome: JSON.stringify({ path: w.path }),
           })
         }
 
@@ -1436,21 +1438,7 @@ export class Bridge {
       whitelist: this.toolWhitelist,
     })
 
-    // A6：同一请求 24h 内最多推 3 条（连点/重试不该把手机刷爆）
-    // B1：没有 callId 时用桥接自己的递增序号作键（wait-point 的 seq 不是公开属性）
-    this.deliverySeq = (this.deliverySeq ?? 0) + 1
-    // B1：带上启动时刻，跨重启也不会与落盘的旧键相撞
-    const key = String(request.callId ?? `auto-${this.startedAt ?? 0}-${this.deliverySeq}`)
-    const now = this.now()
-    const pushed = (this.deliveries.get(key) ?? []).filter((t) => now - t < 86400_000)
-    if (pushed.length >= MAX_PUSH_PER_DAY) {
-      this.deliveries.set(key, pushed)
-      await this.#persist()
-      this.log.info?.(`[qq-bridge] ${key} 24h 内已推 ${pushed.length} 条，不再推`)
-      return 'unavailable'
-    }
-    this.deliveries.set(key, [...pushed, now])
-
+    // 先建待答点：去重键按契约取 `callId ?? wp.id`（wp.id 天然跨重启唯一）
     const wp = this.points.create({
       kind: 'approval',
       title: `需要你批准：${request.toolName ?? '未知工具'}`,
@@ -1468,6 +1456,19 @@ export class Bridge {
       },
     })
     await this.#persist()
+
+    // A6：同一请求 24h 内最多推 3 条（连点/重试不该把手机刷爆）
+    const key = String(request.callId ?? wp.id)
+    const now = this.now()
+    const pushed = (this.deliveries.get(key) ?? []).filter((t) => now - t < 86400_000)
+    if (pushed.length >= MAX_PUSH_PER_DAY) {
+      this.deliveries.set(key, pushed)
+      this.points.drop(wp.id, 'push-quota')
+      await this.#persist()
+      this.log.info?.(`[qq-bridge] ${key} 24h 内已推 ${pushed.length} 条，不再推`)
+      return 'unavailable'
+    }
+    this.deliveries.set(key, [...pushed, now])
 
     const card = renderCard({
       id: wp.id,
@@ -1579,7 +1580,7 @@ export class Bridge {
     const wp = this.points.create({
       kind: 'question',
       title: q.question,
-      meta: { question: q, optionLabels, options: optionLabels, shortId: 1 },
+      meta: { question: q, optionLabels, options: optionLabels, shortId: 1, callId: request.callId ?? null, sessionId: String(request.agent?.id ?? request.agent?.session?.id ?? '') },
     })
     await this.#persist()
 

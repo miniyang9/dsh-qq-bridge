@@ -55,7 +55,7 @@ frame: docs/frame/qq-bridge.md
 ![L2 问答路径](diagrams/l2-flow.png)
 
 重建：`diagrams/*.json` + `render.py`（Pillow）+ 命令 `python docs/arch/qq-bridge/diagrams/render.py`。
-L2 路径图是**目标态**，尚未实现（见 §9 债 4）。
+L2 路径图已落地：`/why` 起独立会话、可写、`/done` 后自动归档（见 §8 审计补记）。
 
 ## 骨架（L5）
 
@@ -86,7 +86,7 @@ L2 路径图是**目标态**，尚未实现（见 §9 债 4）。
 | A12/A13 睡眠/断电 | `test/s4-state.test.mjs`（重启作废） | ✅ 脱网；睡眠未测 |
 | A14/A16 挂死/崩溃拉起 | 无 | ⛔ 未测 |
 | A19/A21 L2 调查 | 无 | ⛔ 未做 |
-| A22/A23 `/say` | 无 | ⛔ 未做 |
+| A22/A23 `/say` | `s5-say` / `s30-say-text` | ✅ 脱网通过；真机已验 |
 | A26 审计 | 无（`audit.js` 不存在） | ⛔ 未做 |
 | A30 停滞 | 无 | ⛔ 未做 |
 
@@ -120,7 +120,7 @@ L2 路径图是**目标态**，尚未实现（见 §9 债 4）。
 1. **L2/L3 未拆文件**：都在 `src/app/bridge.js`。拆分触发点：下一片动 L3 时。
 2. ~~`Event` 未落地~~ → 已落地；seam 迁移未完成（lib/index.js 仍传裸 request，靠 `unwrap` 兜）。
 3. ~~`LabelPolicy` 未落地~~ → 已落地 `src/core/label.js`（三条判据 + 参数反查，ADR-22）；ADR-19 的 reversible 代理作废。
-4. **`/say`、`/why`、`/list`、`/progress` 未实现**，但**不再静默吞**：收到就回"还没开放"（R1-2 修正）。
+4. ~~**`/say`、`/why`、`/list`、`/progress` 未实现**~~（已全部实现，见顶部状态说明），但**不再静默吞**：收到就回"还没开放"（R1-2 修正）。
 5. ~~审计未落地~~ → 已落地 `src/app/audit.js`（JSONL 追加写、五字段、180 天 prune，A26）；`evidenceViewed` 目前恒为 false（`/why` 未实现）。
 6. **A2 的 ≤5s 未测量**：S3-loop 只测了端到端 8.7s（含人打字）。
 7. **多问题提问让位**（返回 `undefined`）——ADR-20。

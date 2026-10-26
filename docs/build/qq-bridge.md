@@ -721,6 +721,32 @@ BB-61（黑盒）：卡片条数 1（≤2）/ 3 个 id 全在 / 待答数 3（�
 
 返工：无（实现与官方一致；仅文档措辞与注释修正）
 
+## 修复轮（P0/P1）· 2026-10-25
+
+独立评审（session-7f9dea58）指出 11 套测试红、契约破口与文档不一致，逐项处理：
+
+**代码**
+- `s11`：`#waitAgent` 在 `getAgents()` 为 null 时崩（`/new` 报"新建失败"）→ 加空值保护
+- 11 套测试的 `allowed` 断言迁移到 `allowed-once`（DSH 词表）
+- `presence`：ESM 下裸 `require('electron')` 恒 null（判定永远"离开"）→ 改 `createRequire`；补 PowerShell `GetLastInputInfo` 兜底；仅 Electron 环境启用
+- `Delivery` 去重键改为 `callId ?? wp.id`（先建点再判重）
+- 提问 meta 补 `callId`/`sessionId`，审计可对齐 DSH
+- A19′：咨询写操作改为**每次一条审计**（上限 50）
+- 移除未使用的 `approvalEvent/questionEvent` import（Event 仍只做形状校验）
+
+**验证方式修正**
+- 之前用"最后一行文本匹配"判断通过，导致 `S11 FAIL (1)` 这类汇总行被漏掉（误报 56/56）
+- 现统一按**进程退出码**逐套判断：真实基线 56/56
+
+**文档**
+- frame `## 偏离` 增三条（在场门控、`/say` 分片、新增命令），授权引用人类原话
+- 02：命令集 v4 补 `/mode` `/pc` `/away` `/auto` `/more`；Event 标"部分落地"；Delivery 键注明
+- 01：删除"`/say` `/why` 未实现"等过期表述，A22/A23 改为已实现
+- 03：L2 由"只读驱动"改为"可写（D19）"；补 ADR-30（在场门控）/ADR-31（分片）
+- README/手册：补在场开关与分片说明；手册修正"不会改你的代码"（`/why` 可写）
+
+**未解决（需人类裁决）**：A25（卡片五词 vs `reason` 原文）、A14（≤20s vs 心跳 41.25s）。
+
 ## 不可逆动作检查
 
 本片无不可逆动作（只写工作区内的文件）。首个需要"怎么回去"的动作是 S1b 的 profile 安装：
