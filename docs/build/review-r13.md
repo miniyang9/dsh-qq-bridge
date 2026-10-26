@@ -181,4 +181,20 @@ $files = Get-ChildItem test -Filter *.mjs |
 5. **并发编辑**：21:01 工作树 WIP 期间 `Bridge` 构造一度因 `opts.logFile` 抛 `ReferenceError`（当时全仓测试会全红），21:03 改为 `logFile` 形参后恢复，`2448efd` 已把修正后的版本提交；`4e73654` 全绿。这不是 `17c85a9` 的回归，但说明交接前应把改动收敛并复跑基线。
 6. **`baseline.md` 落后一拍**：`docs/build/baseline.md` 仍写 `TOTAL=56` 并称「唯一权威基线」，但 `2448efd` 新增 `test/s54-log.mjs` 后按同一排除规则实际可跑 **57** 套（本轮 57/57）。按文档复跑会漏 s54；建议同步为 57 并注明 s54 是 `2448efd` 新加的日志套件。
 
-状态：未通过（阻断 1）
+## 收尾核销
+
+**最终判定以本节与末行为准。** 上方 `## 结论：不可交接（阻断 1）` 与「R12 #3 未闭合」「BB-96 期望 1 仍红」「FQ-16 未改」「文末状态未改」「L 证据生产者仍缺」是 `17c85a9` 时的初审记录；三项已在 `478408c` 补正，本节逐项复核。
+
+- 核销对象：HEAD `478408c`（`fix(r13): BB-103 补 C2/C3 取法；归档失败写 err/archive 日志行；末行改为独立状态行`），工作树干净。
+- 复核方式：读黑盒 L483/L501/L507/L508/L575–L579 与 `bridge.js` 的 `endConsult`；用假 client + 假 `workspaceController` 在 `478408c` 干净导出（`.tmp/r13-final`）上跑日志探针；按 `docs/build/baseline.md` 逐套跑 57 套。
+
+| 核销项 | 核了什么 | 结果 |
+|---|---|---|
+| 1) BB-96 期望 1 | L501 文本已为「`/away` 回话 1 条含「始终推送」≥1 处」；实测回话 `已切到「始终推送」。（/auto 恢复自动）` 含「始终推送」1 处、不含「离开」 | ✅ 成立 |
+| 2) FQ-16 / BB-102 / BB-103 | FQ-16（L483）写「取 `%LOCALAPPDATA%\qq-bridge\state.json` 的 `consults` 数组最后一项；`/why` 回话里的 6 位短 id 是**任务**会话，不是它」；BB-102（L507）期望 3) 有「（取 `state.json.consults` 最后一项）」；BB-103（L508）期望 3)/4) 的 C2/C3 session id 均补同口径 | ✅ 3/3 成立 |
+| 3) 文末状态 + 日志生产者 | 黑盒末行已是独立一行 `状态：增补用例可用（R13 修复后）`；实测 `recovered` → `{"dir":"out","kind":"reconnect","detail":"recovered"}`；归档成功 → `{"dir":"out","kind":"archive","requestId":"session-consult-X","detail":"archived"}`；归档失败 → `{"dir":"err","kind":"archive","requestId":"session-consult-Y","detail":"EPERM: 只读"}` | ✅ 成立 |
+| 4) 基线 | `docs/build/baseline.md` 写 `TOTAL=57 GREEN=57 RED=0`；`478408c` 实跑 57 套 | ✅ `TOTAL=57 GREEN=57 RED=0` |
+
+结论：R13 三项收尾核销全部成立，R12 #3 的最后两处缺口（BB-103 取法、archive 失败行）已闭合；运行时代码未发现回归，基线 57/57。
+
+状态：可交接（2026-10-25，收尾核销通过）
