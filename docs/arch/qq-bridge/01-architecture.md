@@ -134,7 +134,14 @@ L2 路径图已落地：`/why` 起独立会话、可写、`/done` 后自动归�
 ├─ lib/index.js                # 插件入口：注册两条接缝、装配 Bridge
 ├─ src/
 │  ├─ app/bridge.js            # L2+L3 合体：WaitPoint/Answer/LabelPolicy/Delivery/发送
-│  ├─ core/wait-point.js       # WaitPoint（内存 + restore）
+│  ├─ core/
+  │  ├─ presence.js        # 在场判定（空闲探针）
+  │  ├─ events.js           # Event 形状
+  │  ├─ sessions.js         # 会话库读取/标题
+  │  ├─ label.js            # 标注三判据
+  │  ├─ wait-point.js       # 待答点状态机
+  │  ├─ store.js            # 原子落盘
+  │  ├─wait-point.js       # WaitPoint（内存 + restore）
 │  ├─ core/label.js            # LabelPolicy：三条判据 + findToolArgs 反查
 │  ├─ core/store.js            # JsonStore：原子写、坏文件容忍
 │  └─ transport/

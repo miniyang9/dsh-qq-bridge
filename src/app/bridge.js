@@ -218,7 +218,7 @@ export class Bridge {
         const since = this.firstFailedAt === null ? '' : `，最早一条在 ${new Date(this.firstFailedAt).toISOString().slice(11, 16)}`
         this.failedSends = 0
         this.firstFailedAt = null
-        this.send(`断网期间有 ${n} 条没送达${since}。要逐条补发请说一声，否则只给这条摘要。`, null).catch(() => {})
+        if (!this.#present()) this.send(`断网期间有 ${n} 条没送达${since}。要逐条补发请说一声，否则只给这条摘要。`, null).catch(() => {})
       }
     })
     this.client.on('recovered', () => {
@@ -280,7 +280,7 @@ export class Bridge {
     const text = `我重启过。上次非正常结束时，有 ${interrupt.dropped} 个待答请求已作废（不会重放），请重新触发。`
     this.state.interruption = null
     await this.#persist()
-    await this.send(text, null)
+    if (!this.#present()) await this.send(text, null)   // 在场时不必把重启提示推到手机
   }
 
   async onEvent({ type, data }) {
@@ -848,7 +848,7 @@ export class Bridge {
     const tail = archived ? '；已归档' : `；归档未成功（${archiveError ?? '未知原因'}）`
     const msg = `咨询已结束（会话 ${shortOf(key)}，共 ${entry.rounds} 轮，原因：${reason}${tail}）`
     if (data) await this.send(msg, data.id)
-    else await this.send(msg, null)
+    else if (!this.#present()) await this.send(msg, null)   // 自动结束的提示：在场时不打扰
   }
 
   /** `/new [n]`（D16/D17）：只在已知工作区新建，每天每工作区 ≤ 上限。 */
@@ -1536,7 +1536,7 @@ export class Bridge {
           evidenceMissing: wp.meta?.evidenceMissing === true,
           outcome: JSON.stringify({ via: 'gui', outcome: guiOutcome }),
         })
-        this.send(`已在电脑端处理（${guiOutcome}），这条不用再回手机。`, null).catch(() => {})
+        if (!this.#present()) this.send(`已在电脑端处理（${guiOutcome}），这条不用再回手机。`, null).catch(() => {})
         return guiOutcome
       }
       settled = first !== null && first.by === 'qq' ? first : await qq
@@ -1631,7 +1631,7 @@ export class Bridge {
           return { answers: [] }
         }
         await this.#persist()   // N1：与审批侧一致，drop 必须落盘
-        this.send(`已在电脑端答复（${picked?.selected?.join('/') ?? picked?.custom ?? '已答'}），这条不用再回手机。`, null).catch(() => {})
+        if (!this.#present()) this.send(`已在电脑端答复（${picked?.selected?.join('/') ?? picked?.custom ?? '已答'}），这条不用再回手机。`, null).catch(() => {})
         await this.audit.append({
           requestId: String(wp.meta?.callId ?? wp.id),
           wpId: wp.id,

@@ -121,8 +121,10 @@ export function powershellIdleProbe() {
         const r = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', body], {
           encoding: 'utf8', timeout: 3000, windowsHide: true,
         })
-        const n = Number(String(r.stdout ?? '').trim())
-        if (Number.isFinite(n) && n >= 0) return n
+        // 关键：空 stdout 不能当 0（沙箱 EPERM 时 stdout=undefined，
+        // Number('') === 0 会被误判成"刚操作过"→ 永远在场 → 通知永久静音）
+        const raw = String(r.stdout ?? '').trim()
+        if (!r.error && /^\d+$/.test(raw)) return Number(raw)
       } catch {
         /* 管道被沙箱禁止时走文件方式 */
       }
