@@ -854,6 +854,7 @@ export class Bridge {
     } catch (err) {
       archived = false
       archiveError = err?.message ?? String(err)
+      this.runLog?.write({ dir: 'err', kind: 'archive', requestId: String(entry.consultId ?? ''), detail: archiveError.slice(0, 120) })
     }
 
     const tail = archived ? '；已归档' : `；归档未成功（${archiveError ?? '未知原因'}）`
