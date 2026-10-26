@@ -284,7 +284,8 @@ export class Bridge {
   async onReady() {
     const interrupt = this.state.interruption
     if (!interrupt) return
-    const text = `我重启过。上次非正常结束时，有 ${interrupt.dropped} 个待答请求已作废（不会重放），请重新触发。`
+    const interrupted = Object.keys(this.state.activeTurns ?? {}).length
+    const text = `我重启过。上次非正常结束：${interrupted} 个中断 turn，${interrupt.dropped} 个待答请求已作废（不会重放），请重新触发。`
     this.state.interruption = null
     await this.#persist()
     if (!this.#present()) await this.send(text, null)   // 在场时不必把重启提示推到手机
@@ -419,11 +420,13 @@ export class Bridge {
     }
     if (target.status !== 'open') {
       const why = target.status === 'expired'
-        ? '已失效（DSH 侧已中止/超时，你的答复不再生效）'
+        ? (target.kind === 'question'
+          ? '该提问已超时结束（DSH 侧已中止），你的答复不再生效'
+          : '已失效（DSH 侧已中止/超时），你的答复不再生效')
         : target.status === 'dropped'
           ? `已作废（${target.dropReason ?? '原因未记录'}）`
           : '已处理过'
-      await this.send(`${cmd.id} ${why}——这次答复没有被采纳。`, data.id)
+      await this.send(`${cmd.id} 属于已结束的请求 ${target.id}：${why}——这次答复没有被采纳。`, data.id)
       return
     }
 
@@ -1161,6 +1164,8 @@ export class Bridge {
     st.lastAt = this.now()
     if (event?.type === 'turn/start') {
       st.turnOpen = true
+      this.state.activeTurns = { ...(this.state.activeTurns ?? {}), [String(id)]: this.now() }
+      this.#persist().catch(() => {})
       st.notified = {}
       st.startedAt = this.now()
       st.tools = {}
@@ -1177,6 +1182,10 @@ export class Bridge {
     }
     if (event?.type === 'turn/end') {
       st.turnOpen = false
+      if (this.state.activeTurns && this.state.activeTurns[String(id)] !== undefined) {
+        delete this.state.activeTurns[String(id)]
+        this.#persist().catch(() => {})
+      }
       // 回执不依赖"是否被监视"：/say 注进去的，一定要把结果带回来
       await this.#relaySayResult(id, st)
       const openHere = this.points.list().some((p) => p.status === 'open')
@@ -1210,6 +1219,7 @@ export class Bridge {
       `模式：${mode === 'pc' ? `静音（还剩 ${left} 分钟）` : mode === 'away' ? '始终推送' : '自动'}`,
       `判定：${present ? '在场（不打扰）' : '离开（会推送）'}${pendingNote}`,
       `依据：空闲 ${info.idleText}`,
+      `今日主动推送：${this.state.push?.count ?? 0} 条（A8 自限：正常日 ≤10；审批卡片不受限）`,
       `探针：${this.idleProbeKind}${this.idleProbeKind === 'none' && this.idleProbeReason ? `（${this.idleProbeReason}）` : ''}`,
       ...(info.idleText.startsWith('拿不到') ? ['诊断：', ...probeDiagnostics().map((l) => '· ' + l)] : []),
       mode === 'auto' ? '规则：空闲 < 5 分钟视为在场，≥5 分钟视为离开' : '（手动模式，忽略空闲）',
@@ -1280,6 +1290,16 @@ export class Bridge {
     if (mode === 'pc') return true
     if (mode === 'away') return false
     return this.presence.state === PRESENCE.PRESENT
+  }
+
+  /** A8：记一条主动推送（卡片与通知都算）。 */
+  #countPush() {
+    const day = new Date(this.now()).toISOString().slice(0, 10)
+    const st = this.state.push ?? { day, count: 0 }
+    if (st.day !== day) { st.day = day; st.count = 0 }
+    st.count += 1
+    this.state.push = st
+    return st.count
   }
 
   #noticeBudgetOk() {
@@ -1394,6 +1414,18 @@ export class Bridge {
   async tick() {
     const sent = []
     await this.samplePresence()
+
+    // A12：两次 tick 间隔异常大 = 设备睡过/被挂起，醒后只发一条摘要
+    // 用真实墙钟判断睡眠：注入的假时钟（测试）不应被当成"设备睡过"
+    const wall = Date.now()
+    const gap = this.lastWallTickAt ? wall - this.lastWallTickAt : 0
+    this.lastWallTickAt = wall
+    if (gap > 3 * 60_000) {
+      const openCount = this.points.list().filter((p) => p.status === 'open').length
+      if (!this.#present()) {
+        await this.send(`设备睡眠/挂起过约 ${Math.round(gap / 60_000)} 分钟。当前待答 ${openCount} 个（与本地计数一致）。`, null)
+      }
+    }
 
     for (const [id, st] of this.sessionState) {
       if (!st.turnOpen) continue
@@ -1565,7 +1597,7 @@ export class Bridge {
         : label.reason === 'escalation' ? '需要提权（沙箱外）'
         : label.reason === null ? '工作区/沙箱范围内'
         : '需人工判断',
-      reversible: label.labeled ? false : undefined,
+      reversible: undefined,   // 不做代理判断：未知就是未知，卡片显示“未判定”（ADR-19 已作废）
       labeled: label.labeled,
       evidenceMissing: wp.meta.evidenceMissing,
       evidenceViewed: wp.meta.evidenceViewed === true,
@@ -1789,6 +1821,7 @@ export class Bridge {
       } else {
         res = await this.client.sendProactive({ userOpenId: [...this.allowlist][0], content })
       }
+      if (msgId === null || msgId === undefined) this.#countPush()
       this.runLog?.write({ dir: 'out', kind: 'send', openid: this.lastInboundOpenid ?? null, requestId: this.lastInboundRequestId ?? null, detail: String(content ?? '').slice(0, 80) })
       this.log.info?.(`[qq-bridge] 已发送 ${res?.id ?? ''}`)
       return res
