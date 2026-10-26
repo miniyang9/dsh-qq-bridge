@@ -126,14 +126,19 @@ export function powershellIdleProbe() {
     const ps1 = path.join(outDir, 'idle-probe.ps1')
     const outFile = path.join(outDir, 'idle-probe.out')
 
-    const script = [
+    // 同样的命令，两种形态：
+    //   -Command 传参必须是**单行**（多行会被 Windows 命令行拆断，返回空）
+    //   写 .ps1 文件时用换行更可读
+    const scriptLines = [
       '$sig = \'[DllImport("user32.dll")] public static extern bool GetLastInputInfo(ref LASTINPUTINFO p); [StructLayout(LayoutKind.Sequential)] public struct LASTINPUTINFO { public uint cbSize; public uint dwTime; }\'',
       'Add-Type -MemberDefinition $sig -Name Idle -Namespace Win32 -ErrorAction Stop',
       '$l = New-Object Win32.Idle+LASTINPUTINFO',
       '$l.cbSize = [System.Runtime.InteropServices.Marshal]::SizeOf($l)',
       '[void][Win32.Idle]::GetLastInputInfo([ref]$l)',
       '[math]::Floor(([Environment]::TickCount - $l.dwTime))',
-    ].join('\n')
+    ]
+    const script = scriptLines.join('\n')
+    const scriptInline = scriptLines.join('; ')
 
     /** 用 cmd 重定向取输出。路径不能加引号——cmd 会把带引号的重定向目标当失败。 */
     const runToFile = (command, out) => {
@@ -171,7 +176,7 @@ export function powershellIdleProbe() {
     const probeOnce = () => {
       // 方式一：直接读管道（DSH 沙箱允许；本机测试环境会 EPERM，自动退方式二）
       try {
-        const pr = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
+        const pr = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', scriptInline], {
           encoding: 'utf8', timeout: 8000, windowsHide: true,
         })
         const rawPipe = String(pr?.stdout ?? '').trim()
