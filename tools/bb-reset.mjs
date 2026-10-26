@@ -18,7 +18,7 @@ const keep = process.argv.includes('--keep')
 const stamp = new Date().toISOString().replace(/[:.]/g, '-')
 const backup = path.join(dir, `backup-${stamp}`)
 
-const files = ['state.json', 'state.audit.jsonl']   // 审计文件由 statePath 推导，实际叫 state.audit.jsonl
+const files = ['state.json', 'state.audit.jsonl', 'bridge.log', 'bridge.log.1']
 fs.mkdirSync(dir, { recursive: true })
 
 let moved = 0

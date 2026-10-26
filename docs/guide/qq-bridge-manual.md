@@ -201,6 +201,7 @@ dsh plugin --profile desktop add .
 | 配置（AppID/白名单） | `~/.dsh/profiles/desktop/cordis.patch.yml` |
 | 状态（待答点、配额计数） | `%LOCALAPPDATA%\qq-bridge\state.json` |
 | 审计 | `%LOCALAPPDATA%\qq-bridge\state.audit.jsonl` |
+| 运行日志 | `%LOCALAPPDATA%\qq-bridge\bridge.log`（JSONL，超 5MB 轮转） |
 | 会话日志 | `~/.dsh/sessions/**` |
 
 ---

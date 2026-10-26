@@ -12,6 +12,7 @@ import { JsonStore, defaultStatePath } from '../core/store.js'
 import { classify, findToolArgs } from '../core/label.js'
 import { isEvent } from '../core/events.js'   // Event 形状有测试，但生产路径尚未投影成 Event（见 02）
 import { Audit } from './audit.js'
+import { BridgeLog, defaultLogPath } from './log.js'
 import { listStoredSessions, humanAge, defaultSessionsRoot, listKnownWorkspaces } from '../core/sessions.js'
 import { Presence, PRESENCE, detectIdleProbe } from '../core/presence.js'
 
@@ -145,6 +146,7 @@ export class Bridge {
     getSessionController = () => null,
     getWorkspaceController = () => null,
     probeServices = null,
+    logFile = defaultLogPath(),
     maxNewPerWorkspacePerDay = 10,
     idleProbe = null,
     presenceIdleMs = 5 * 60_000,
@@ -201,6 +203,7 @@ export class Bridge {
     this.lastMsgAt = 0
     this.seqByMsgId = new Map()
     this.store = new JsonStore(statePath)
+    this.runLog = new BridgeLog(logFile)
     this.audit = new Audit(statePath.replace(/\.json$/, '') + '.audit.jsonl')
     this.state = { version: 1, waitPoints: [], deliveries: {}, interruption: null }
     this.deliveries = new Map()
@@ -1737,11 +1740,13 @@ export class Bridge {
       } else {
         res = await this.client.sendProactive({ userOpenId: [...this.allowlist][0], content })
       }
+      this.runLog?.write({ dir: 'out', kind: 'send', detail: String(content ?? '').slice(0, 80) })
       this.log.info?.(`[qq-bridge] 已发送 ${res?.id ?? ''}`)
       return res
     } catch (err) {
       this.failedSends += 1
       if (this.firstFailedAt === null) this.firstFailedAt = this.now()
+      this.runLog?.write({ dir: 'err', kind: 'send-failed', detail: String(err?.message ?? err).slice(0, 120) })
       this.log.error?.(`[qq-bridge] 发送失败: ${err?.message ?? err}`)
       return null
     }

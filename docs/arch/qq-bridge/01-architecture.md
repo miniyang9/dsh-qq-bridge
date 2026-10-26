@@ -148,7 +148,7 @@ L2 路径图已落地：`/why` 起独立会话、可写、`/done` 后自动归�
 │     └─ envelope.js           # 卡片渲染 + 命令解析（QqEnvelope）
 ```
 
-落盘：`%LOCALAPPDATA%\qq-bridge\state.json`（Q11）；审计 `state.audit.jsonl`（180 天裁剪）。
+落盘：`%LOCALAPPDATA%\qq-bridge\state.json`（Q11）；审计 `state.audit.jsonl`（180 天裁剪）；运行日志 `bridge.log`（JSONL，5MB 轮转）。
 
 ## §10 未实现项（如实记录，2026-10-25）
 
@@ -157,4 +157,4 @@ L2 路径图已落地：`/why` 起独立会话、可写、`/done` 后自动归�
 | A7 重启后 ≤5 分钟恢复 | 未实现 | 依赖常驻策略，桥接自身只做了 WS 重连 |
 | A14 挂起 ≤20s 恢复 | 未实现（且与协议冲突） | 心跳 41.25s，`recoverIfStale` 按 2 周期 ≈82.5s；A14 的 20s 无法满足，需改签 |
 | A16 外部守护拉起 | 未实现 | 没有计划任务/托盘/自启 |
-| W9 日志轮转 | 未实现 | 没有 `bridge.log`；审计已有 180 天裁剪 |
+| W9 日志轮转 | ✅ 已实现 | `src/app/log.js`：`bridge.log` JSONL，超 5MB 轮转为 `.1/.2/.3`（`s54`） |
