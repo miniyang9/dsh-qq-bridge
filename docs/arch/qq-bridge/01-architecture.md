@@ -131,6 +131,7 @@ L2 路径图已落地：`/why` 起独立会话、可写、`/done` 后自动归�
 ├─ package.json                # dsh-qq-bridge，ESM，无构建（ADR-17）
 ├─ cordis.patch.yml            # insert: { id: qq-bridge, name: dsh-qq-bridge }
 ├─ lib/index.js                # 插件入口：注册两条接缝、装配 Bridge
+├─ tools/                      # audit-docs / audit-prompts / bb-reset / openid-probe / repair-title
 ├─ src/
 │  ├─ app/
 │  │  ├─ bridge.js             # L2+L3 合体：WaitPoint/Answer/LabelPolicy 的编排
@@ -148,7 +149,7 @@ L2 路径图已落地：`/why` 起独立会话、可写、`/done` 后自动归�
 │     └─ envelope.js           # 卡片渲染 + 命令解析（QqEnvelope）
 ```
 
-落盘：`%LOCALAPPDATA%\qq-bridge\state.json`（Q11）；审计 `state.audit.jsonl`（180 天裁剪）；运行日志 `bridge.log`（JSONL，5MB 轮转）。
+落盘：`%LOCALAPPDATA%\qq-bridge\state.json`（Q11）——含 `version`/`waitPoints`/`deliveries`/`interruption`/`mode`（打扰模式）/`push`（当日主动推送计数）/`notices`（通知预算）/`newSessions`（新建配额）/`consults`（隐藏咨询会话）/`activeTurns`（未闭合 turn，用于 A13）；审计 `state.audit.jsonl`（180 天裁剪）；运行日志 `bridge.log`（JSONL，5MB 轮转）。
 
 ## §10 未实现项（如实记录，2026-10-25）
 

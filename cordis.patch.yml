@@ -7,4 +7,4 @@
       name: dsh-qq-bridge
       config:
         # S1 期间默认拒绝，用来证明"结果由插件给出而不是 DSH 的 unavailable 回退"。
-        s1DefaultOutcome: rejected
+        s1DefaultOutcome: rejected   # 已失效：配置不全时插件不注册 answerer，此值不再被使用: rejected
