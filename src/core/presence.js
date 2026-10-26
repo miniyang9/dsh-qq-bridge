@@ -101,20 +101,45 @@ export function powershellIdleProbe() {
   try {
     const req = createRequire(import.meta.url)
     const { spawnSync } = req('node:child_process')
+    const fs = req('node:fs')
+    const os = req('node:os')
+    const path = req('node:path')
+
+    const body = [
+      '$sig = \'[DllImport(\"user32.dll\")] public static extern bool GetLastInputInfo(ref LASTINPUTINFO p); [StructLayout(LayoutKind.Sequential)] public struct LASTINPUTINFO { public uint cbSize; public uint dwTime; }\'',
+      'Add-Type -MemberDefinition $sig -Name Idle -Namespace Win32 -ErrorAction Stop',
+      '$l = New-Object Win32.Idle+LASTINPUTINFO',
+      '$l.cbSize = [System.Runtime.InteropServices.Marshal]::SizeOf($l)',
+      '[void][Win32.Idle]::GetLastInputInfo([ref]$l)',
+      '[math]::Floor(([Environment]::TickCount - $l.dwTime))',
+    ].join('; ')
+
     return () => {
-      const script = [
-        "$sig = '[DllImport(\"user32.dll\")] public static extern bool GetLastInputInfo(ref LASTINPUTINFO p); [StructLayout(LayoutKind.Sequential)] public struct LASTINPUTINFO { public uint cbSize; public uint dwTime; }'",
-        'Add-Type -MemberDefinition $sig -Name Idle -Namespace Win32 -ErrorAction Stop',
-        '$l = New-Object Win32.Idle+LASTINPUTINFO',
-        '$l.cbSize = [System.Runtime.InteropServices.Marshal]::SizeOf($l)',
-        '[void][Win32.Idle]::GetLastInputInfo([ref]$l)',
-        '[math]::Floor(([Environment]::TickCount - $l.dwTime))',
-      ].join('; ')
-      const r = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
-        encoding: 'utf8', timeout: 3000, windowsHide: true,
-      })
-      const n = Number(String(r.stdout ?? '').trim())
-      return Number.isFinite(n) && n >= 0 ? n : null
+      // 方式一：读管道（正常环境最快）；DSH_IDLE_FORCE_FILE=1 可强制走文件方式
+      try {
+        if (process.env.DSH_IDLE_FORCE_FILE === '1') throw new Error('forced file mode')
+        const r = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', body], {
+          encoding: 'utf8', timeout: 3000, windowsHide: true,
+        })
+        const n = Number(String(r.stdout ?? '').trim())
+        if (Number.isFinite(n) && n >= 0) return n
+      } catch {
+        /* 管道被沙箱禁止时走文件方式 */
+      }
+
+      // 方式二：让 PowerShell 写文件，再读文件（绕开"禁止管道 stdio"的沙箱限制）
+      try {
+        const out = path.join(os.tmpdir(), `dsh-qq-idle-${process.pid}.txt`)
+        const script = `${body} | Out-File -FilePath '${out.replace(/\\/g, '\\\\')}' -Encoding ascii -Force`
+        spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
+          stdio: 'ignore', timeout: 3000, windowsHide: true,
+        })
+        const n = Number(String(fs.readFileSync(out, 'utf8')).trim())
+        try { fs.rmSync(out, { force: true }) } catch { /* ignore */ }
+        return Number.isFinite(n) && n >= 0 ? n : null
+      } catch {
+        return null
+      }
     }
   } catch {
     return null
