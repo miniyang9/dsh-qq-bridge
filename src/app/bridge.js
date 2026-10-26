@@ -340,6 +340,11 @@ export class Bridge {
       return
     }
     if (cmd.kind === 'pc') {
+      // ADR-32：分钟数必须是正整数；0/负数/非数字一律拒绝
+      if (cmd.minutes !== null && cmd.minutes !== undefined && !(typeof cmd.minutes === 'number' && Number.isInteger(cmd.minutes) && cmd.minutes >= 1)) {
+        await this.send(`参数「${cmd.minutes}」无效：/pc 只接受正整数分钟（例如 /pc 60）。`, data.id)
+        return
+      }
       const minutes = cmd.minutes ?? 60
       this.state.mode = { mode: 'pc', until: this.now() + minutes * 60_000 }
       await this.#persist()

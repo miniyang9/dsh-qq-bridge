@@ -20,6 +20,7 @@ export class QQClient {
   #lastFrameAt = 0
   #hbMs = 41_250
   #staleClosed = false
+  #hadReady = false
 
   constructor({
     tokenStore,
@@ -131,10 +132,13 @@ export class QQClient {
         this.#attempt = 0
         this.#state = 'ready'
         this.#lastFrameAt = Date.now()
-        if (this.#staleClosed) {
+        // 已经 READY 过又回到 READY = 重连成功（普通断网或看门狗触发），都要告知
+        if (this.#hadReady || this.#staleClosed) {
+          const stale = this.#staleClosed
           this.#staleClosed = false
-          this.#emit('recovered', { afterMs: this.#hbMs * 2 })
+          this.#emit('recovered', { afterMs: this.#hbMs * 2, stale })
         }
+        this.#hadReady = true
         this.#emit('ready', d)
         return
       }

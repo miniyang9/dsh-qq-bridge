@@ -21,7 +21,7 @@ const COMMANDS = {
   new: /^\/new(?:\s+(\S+))?\s*$/i,
   list: /^\/list\s*$/i,
   mode: /^\/mode\s*$/i,
-  pc: /^\/pc(?:\s+(\d+))?\s*$/i,
+  pc: /^\/pc(?:\s+(\S+))?\s*$/i,
   away: /^\/away\s*$/i,
   auto: /^\/auto\s*$/i,
   more: /^\/more(?:\s+(\S+))?\s*$/i,
@@ -124,7 +124,12 @@ export function parseCommand(text) {
   if (nw) return { kind: 'new', arg: nw[1] ?? null }
 
   if (COMMANDS.mode.test(raw)) return { kind: 'mode' }
-  if (COMMANDS.pc.test(raw)) { const m = COMMANDS.pc.exec(raw); return { kind: 'pc', minutes: m[1] ? Number(m[1]) : null } }
+  if (COMMANDS.pc.test(raw)) {
+    const m = COMMANDS.pc.exec(raw)
+    if (m[1] === undefined) return { kind: 'pc', minutes: null }
+    // 非纯数字原样传下去，让桥接层给出"参数无效"（而不是落到"未知命令"）
+    return { kind: 'pc', minutes: /^\d+$/.test(m[1]) ? Number(m[1]) : m[1] }
+  }
   if (COMMANDS.away.test(raw)) return { kind: 'away' }
   if (COMMANDS.auto.test(raw)) return { kind: 'auto' }
   if (COMMANDS.more.test(raw)) { const m = COMMANDS.more.exec(raw); return { kind: 'more', id: m[1] ?? null } }
