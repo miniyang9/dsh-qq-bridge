@@ -225,6 +225,7 @@ export class Bridge {
       }
     })
     this.client.on('recovered', () => {
+      this.runLog?.write({ dir: 'out', kind: 'reconnect', detail: 'recovered' })
       if (!this.#present()) this.send('我重连过（连接曾无响应）。', null).catch(() => {})
     })
   }
@@ -846,6 +847,7 @@ export class Bridge {
         // 这里明确要求先停掉它的活动再归档，否则 /done 一定失败。
         await wc.archiveSession({ sessionId: consultId, stopActivity: true })
         archived = true
+        this.runLog?.write({ dir: 'out', kind: 'archive', requestId: consultId, detail: 'archived' })
       } else {
         archiveError = '拿不到 workspaceController'
       }
