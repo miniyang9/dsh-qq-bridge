@@ -9,7 +9,7 @@ const root = '.tmp/fake-fmt'; const fs = await import('node:fs')
 fs.rmSync(root, { recursive: true, force: true })
 fs.mkdirSync(root + '/--C-Project--/session-aaaa1111', { recursive: true })
 fs.writeFileSync(root + '/--C-Project--/session-aaaa1111/session.v4.jsonl', JSON.stringify({ type:'session', id:'session-aaaa1111', cwd:'C:/Project', delegationDepth:0, agentPreset:'standard' }))
-const b = new Bridge({ appId:'x', appSecret:'y', allowlist:['u1'], client, statePath:'.tmp/t-fmt-'+Date.now()+'.json', sessionsRoot: root, now: () => now, log:{info(){},error(){}} })
+const b = new Bridge({ idleProbe: () => 10 * 60_000, appId:'x', appSecret:'y', allowlist:['u1'], client, statePath:'.tmp/t-fmt-'+Date.now()+'.json', sessionsRoot: root, now: () => now, log:{info(){},error(){}} })
 await b.start()
 const sess = { id: 'session-aaaa1111' }
 await b.onSessionEvent(sess, { type:'turn/start' })

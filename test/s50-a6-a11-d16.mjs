@@ -14,6 +14,7 @@ const mk = (opts = {}) => {
   const sent = []
   const client = { on() {}, async start() {}, async stop() {}, async sendPassive(a) { sent.push(a.content); return { id: 'p' } }, async sendProactive(a) { sent.push(a.content); return { id: 'a' } } }
   const b = new Bridge({
+    idleProbe: () => 10 * 60_000,   // 测试默认按"离开"，否则在场门控会静音通知
     appId: 'x', appSecret: 'y', allowlist: ['u1'], client,
     statePath: `${dir}/state-${Math.random().toString(16).slice(2)}.json`,
     sessionsRoot: dir + '/none', log: { info() {}, error() {} }, ...opts,

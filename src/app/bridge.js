@@ -222,7 +222,7 @@ export class Bridge {
       }
     })
     this.client.on('recovered', () => {
-      this.send('我重连过（连接曾无响应）。', null).catch(() => {})
+      if (!this.#present()) this.send('我重连过（连接曾无响应）。', null).catch(() => {})
     })
   }
 
@@ -1135,7 +1135,7 @@ export class Bridge {
       if (!st.notified.idle && !openHere && await this.#isWatched(session)) {
         st.notified.idle = true
         this.sessionState.set(id, st)
-        if (this.#noticeBudgetOk()) {
+        if (!this.#present() && this.#noticeBudgetOk()) {
           await this.send(await this.#idleMessage(id, st), null)
         }
       }
@@ -1322,13 +1322,13 @@ export class Bridge {
       const idleFor = this.now() - st.lastAt
       if (idleFor >= this.stallSecondMs && !st.notified.stall2) {
         st.notified.stall2 = true
-        if (this.#noticeBudgetOk()) {
+        if (!this.#present() && this.#noticeBudgetOk()) {
           await this.send(await this.#stallMessage(id, st, idleFor, true), null)
         }
         sent.push(id)
       } else if (idleFor >= this.stallFirstMs && !st.notified.stall1) {
         st.notified.stall1 = true
-        if (this.#noticeBudgetOk()) {
+        if (!this.#present() && this.#noticeBudgetOk()) {
           await this.send(await this.#stallMessage(id, st, idleFor, false), null)
         }
         sent.push(id)
@@ -1344,7 +1344,7 @@ export class Bridge {
         meta.remind30 = true
         p.meta = meta
         touched = true
-        if (this.#noticeBudgetOk()) {
+        if (!this.#present() && this.#noticeBudgetOk()) {
           await this.send(
             `[${p.id}] 已经 30 分钟没人答复了（${p.title ?? '待答请求'}）。\n/ans ${p.id} 1 批准 ｜ /ans ${p.id} 2 拒绝 ｜ /why ${meta.sessionId ? shortOf(meta.sessionId) : p.id} 看现场`,
             null,
@@ -1354,7 +1354,7 @@ export class Bridge {
         meta.remind10 = true
         p.meta = meta
         touched = true
-        if (this.#noticeBudgetOk()) {
+        if (!this.#present() && this.#noticeBudgetOk()) {
           await this.send(`[${p.id}] 还没答复（${p.title ?? '待答请求'}，10 分钟了）。`, null)
         }
       }
