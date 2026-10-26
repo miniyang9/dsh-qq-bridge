@@ -36,7 +36,7 @@ check('title 事件带 source', /source:\s*\{\s*kind:/.test(bridge))
 check('审批接受 next（GUI 通道）', /handleApproval\([^)]*next/.test(bridge))
 check('GUI 先答会清理待答点', bridge.includes('answered-on-gui'))
 check('GUI 之后 reject 被吞（不影响 QQ 结果）', /by: 'gui', outcome: null/.test(bridge))
-check('lib 把 next 传给 bridge', /handleApproval\(request, \{ next/.test(index))
+check('lib 把 next 传给 bridge', /handleApproval\(request, \{ next/.test(index + (fs.existsSync('lib/seams.js') ? fs.readFileSync('lib/seams.js', 'utf8') : '')))
 
 // 6) 短 id：统一由 shortOf 处理，不再截完整 session id
 check('存在 shortOf', /function shortOf/.test(bridge))

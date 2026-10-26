@@ -7,7 +7,7 @@
 - 范围：`test/*.mjs`，排除 `s1-waterfall.test.mjs`（需 Electron）与 `s3-loop.mjs`（需真实通道）
 
 ```
-TOTAL=57  GREEN=57  RED=0
+TOTAL=59  GREEN=59  RED=0
 ```
 
 ## 为什么数字变过
@@ -16,7 +16,7 @@ TOTAL=57  GREEN=57  RED=0
 |---|---|---|
 | 47 | review-r9 | 2026-10-24 的套件数 |
 | 52 | README / 台账 / 01（旧） | 加入 s40–s51 后的套件数 |
-| **57** | 本文件 | 加入 s52/s53/s54 后的当前套件数 |
+| **59** | 本文件 | 加入 s52/s53/s54 后的当前套件数 |
 
 ## 复跑方法
 

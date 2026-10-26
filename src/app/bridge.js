@@ -429,11 +429,16 @@ export class Bridge {
 
     // /say 的确认：/ans <id> 1 = 发送，/ans <id> 2 = 取消
     if (target.kind === 'say') {
-      if (cmd.kind !== 'option') {
-        await this.send(`要发送请回 /ans ${target.id} 1；取消回 /ans ${target.id} 2。`, data.id)
+      // 兼容两种写法：/ans <id> 1|2，以及 Q18 约定的 /yes <id>、/no <id>
+      const pick = cmd.kind === 'option' ? cmd.index
+        : cmd.kind === 'yes' ? 1
+          : cmd.kind === 'no' ? 2
+            : null
+      if (pick === null) {
+        await this.send(`要发送请回 /yes ${target.id} 或 /ans ${target.id} 1；取消回 /no ${target.id} 或 /ans ${target.id} 2。`, data.id)
         return
       }
-      if (cmd.index === 2) {
+      if (pick === 2) {
         this.points.drop(target.id, 'cancelled-by-user')
         await this.send(`已取消 ${target.id}。`, data.id)
         await this.#persist()
@@ -572,8 +577,17 @@ export class Bridge {
       if (wp) wp.meta = { ...(wp.meta ?? {}), pushedToQQ: false }
       return
     }
+    // 先标记"正在发"，发送成功后才置 true；失败由下面的 catch 回滚，
+    // 否则 #flushPending 与 5 分钟兜底都会因 pushedToQQ===true 跳过 → 审批卡片静默丢失
     if (wp) wp.meta = { ...(wp.meta ?? {}), pushedToQQ: true }
-    if (this.mergeMs <= 0) return this.send(text, this.lastMsgId)
+    if (this.mergeMs <= 0) {
+      try {
+        return await this.send(text, this.lastMsgId)
+      } catch (err) {
+        this.#markPushed([id], false)   // 发失败 → 回滚，交给离开补推/5 分钟兜底
+        throw err
+      }
+    }
     this.cardBuffer.push({ id, text })
     if (this.cardTimer === null) {
       this.cardTimer = setTimeout(() => { this.#flushCards().catch(() => {}) }, this.mergeMs)
@@ -582,15 +596,30 @@ export class Bridge {
     return undefined
   }
 
+  /** 批量把"已推送"标记改成指定值（发送失败时回滚）。 */
+  #markPushed(ids, value) {
+    for (const id of ids) {
+      const wp = this.points.get(id)
+      if (wp) wp.meta = { ...(wp.meta ?? {}), pushedToQQ: value }
+    }
+  }
+
   async #flushCards() {
     const items = this.cardBuffer
     this.cardBuffer = []
     this.cardTimer = null
     if (items.length === 0) return undefined
-    if (items.length === 1) return this.send(items[0].text, this.lastMsgId)
-    const head = `[${items.length} 个新请求]`
-    const body = items.map((it) => it.text).join('\n----\n')
-    return this.send(head + '\n' + body, this.lastMsgId)
+    const text = items.length === 1
+      ? items[0].text
+      : `[${items.length} 个新请求]\n${items.map((it) => it.text).join('\n----\n')}`
+    try {
+      return await this.send(text, this.lastMsgId)
+    } catch (err) {
+      // 发送失败：把这几张卡回滚成"未推送"，否则它们永远发不出去（任务卡死）
+      this.#markPushed(items.map((it) => it.id), false)
+      this.log.error?.(`[qq-bridge] 卡片发送失败，已回滚待补推：${err?.message ?? err}`)
+      return undefined
+    }
   }
 
   /** 咨询通道能不能用：两个服务都在才算（A27a：不可用要在卡片上如实标注）。 */
@@ -907,7 +936,11 @@ export class Bridge {
         const agent = await this.#waitAgent(agents, id)   // D16：创建是异步的，等一下并重试
         // 先只给一个 "QQ" 前缀，等第一句话进来再补成 "QQ <任务>"
         try {
-          agent?.session?.append?.('session/title', { title: 'QQ' })
+          agent?.session?.append?.('session/title', {
+            title: 'QQ',
+            messageSeqs: [],                       // 必填：缺了会写坏会话日志（真机 SessionFormatError）
+            source: { kind: 'user' },              // 必填：与 DSH 的 SessionTitleEventData 对齐
+          })
           this.qqCreated?.add?.(String(id))
         } catch {
           /* 起名失败不影响建会话 */
@@ -1756,7 +1789,7 @@ export class Bridge {
       } else {
         res = await this.client.sendProactive({ userOpenId: [...this.allowlist][0], content })
       }
-      this.runLog?.write({ dir: 'out', kind: 'send', detail: String(content ?? '').slice(0, 80) })
+      this.runLog?.write({ dir: 'out', kind: 'send', openid: this.lastInboundOpenid ?? null, requestId: this.lastInboundRequestId ?? null, detail: String(content ?? '').slice(0, 80) })
       this.log.info?.(`[qq-bridge] 已发送 ${res?.id ?? ''}`)
       return res
     } catch (err) {
