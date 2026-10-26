@@ -14,7 +14,7 @@ import { isEvent } from '../core/events.js'   // Event 形状有测试，但生�
 import { Audit } from './audit.js'
 import { BridgeLog, defaultLogPath } from './log.js'
 import { listStoredSessions, humanAge, defaultSessionsRoot, listKnownWorkspaces } from '../core/sessions.js'
-import { Presence, PRESENCE, detectIdleProbe } from '../core/presence.js'
+import { Presence, PRESENCE, detectIdleProbe, probeDiagnostics } from '../core/presence.js'
 
 /**
  * 一张票 → 审批结局。批准/yes 都算允许；其余算拒绝。
@@ -1178,6 +1178,7 @@ export class Bridge {
       `判定：${present ? '在场（不打扰）' : '离开（会推送）'}${pendingNote}`,
       `依据：空闲 ${info.idleText}`,
       `探针：${this.idleProbeKind}${this.idleProbeKind === 'none' && this.idleProbeReason ? `（${this.idleProbeReason}）` : ''}`,
+      ...(info.idleText.startsWith('拿不到') ? ['诊断：', ...probeDiagnostics().map((l) => '· ' + l)] : []),
       mode === 'auto' ? '规则：空闲 < 5 分钟视为在场，≥5 分钟视为离开' : '（手动模式，忽略空闲）',
     ].join('\n')
   }

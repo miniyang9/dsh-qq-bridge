@@ -121,66 +121,75 @@ export function powershellIdleProbe() {
     const os = req('node:os')
     const path = req('node:path')
 
-    const body = [
-      '$sig = \'[DllImport(\"user32.dll\")] public static extern bool GetLastInputInfo(ref LASTINPUTINFO p); [StructLayout(LayoutKind.Sequential)] public struct LASTINPUTINFO { public uint cbSize; public uint dwTime; }\'',
+    // 沙箱里通常只允许写临时目录；LOCALAPPDATA 可能被拒，所以优先 TEMP
+    const outDir = os.tmpdir()
+    const ps1 = path.join(outDir, 'idle-probe.ps1')
+    const outFile = path.join(outDir, 'idle-probe.out')
+
+    const script = [
+      '$sig = \'[DllImport("user32.dll")] public static extern bool GetLastInputInfo(ref LASTINPUTINFO p); [StructLayout(LayoutKind.Sequential)] public struct LASTINPUTINFO { public uint cbSize; public uint dwTime; }\'',
       'Add-Type -MemberDefinition $sig -Name Idle -Namespace Win32 -ErrorAction Stop',
       '$l = New-Object Win32.Idle+LASTINPUTINFO',
       '$l.cbSize = [System.Runtime.InteropServices.Marshal]::SizeOf($l)',
       '[void][Win32.Idle]::GetLastInputInfo([ref]$l)',
       '[math]::Floor(([Environment]::TickCount - $l.dwTime))',
-    ].join('; ')
+    ].join('\n')
 
-    let lastGood = null   // { idle, at }
-    const nowMs = () => Date.now()
-
-    const probeOnce = () => {
-      // 方式一：读管道（正常环境最快）；DSH_IDLE_FORCE_FILE=1 可强制走文件方式
+    /** 用 cmd 重定向取输出。路径不能加引号——cmd 会把带引号的重定向目标当失败。 */
+    const runToFile = (command, out) => {
+      try { fs.mkdirSync(outDir, { recursive: true }) } catch { /* ignore */ }
+      try { fs.rmSync(out, { force: true }) } catch { /* ignore */ }
+      const r = spawnSync('cmd.exe', ['/c', `${command} > ${out} 2>&1`], {
+        stdio: 'ignore', timeout: 8000, windowsHide: true,
+      })
+      if (r?.error) return { text: '', error: String(r.error.code ?? r.error.message) }
       try {
-        if (process.env.DSH_IDLE_FORCE_FILE === '1') throw new Error('forced file mode')
-        const r = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', body], {
-          encoding: 'utf8', timeout: 3000, windowsHide: true,
-        })
-        // 关键：空 stdout 不能当 0（沙箱 EPERM 时 stdout=undefined，
-        // Number('') === 0 会被误判成"刚操作过"→ 永远在场 → 通知永久静音）
-        const raw = String(r.stdout ?? '').trim()
-        if (!r.error && /^\d+$/.test(raw)) return Number(raw)
-      } catch {
-        /* 管道被沙箱禁止时走文件方式 */
-      }
-
-      // 方式二：让 PowerShell 写文件，再读文件（绕开"禁止管道 stdio"的沙箱限制）
-      try {
-        const out = path.join(os.tmpdir(), `dsh-qq-idle-${process.pid}.txt`)
-        const script = `${body} | Out-File -FilePath '${out.replace(/\\/g, '\\\\')}' -Encoding ascii -Force`
-        spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', script], {
-          stdio: 'ignore', timeout: 3000, windowsHide: true,
-        })
-        const rawFile = String(fs.readFileSync(out, 'utf8')).trim()
+        const text = fs.readFileSync(out, 'utf8')
         try { fs.rmSync(out, { force: true }) } catch { /* ignore */ }
-        // 与管道分支同样的严格性：空文件不能当 0
-        return /^\d+$/.test(rawFile) ? Number(rawFile) : null
-      } catch {
-        return null
+        return { text, error: null }
+      } catch (e) {
+        return { text: '', error: String(e?.code ?? e?.message) }
       }
     }
 
+    const parseQuser = (text) => {
+      // quser 输出示例："  u1   console   1  Active   .   2026/10/25 9:00"
+      // IDLE TIME：'.'（<1 分钟）、'none'、'H:MM'、'H:MM:SS'
+      const line = text.split(/\r?\n/).find((l) => /\bActive\b/i.test(l)) ?? ''
+      const cols = line.trim().split(/\s{2,}/)
+      const idle = cols.find((c) => c === '.' || c === 'none' || /^\d+:\d{2}(:\d{2})?$/.test(c))
+      if (!idle) return null
+      if (idle === '.' || idle === 'none') return 0
+      const parts = idle.split(':').map(Number)
+      if (parts.length === 2) return (parts[0] * 60 + parts[1]) * 60_000
+      return ((parts[0] * 60 + parts[1]) * 60 + parts[2]) * 1000
+    }
+
+    let lastGood = null
+    const nowMs = () => Date.now()
+
+    const probeOnce = () => {
+      // 方式一：PowerShell 脚本文件（避免嵌套引号）
+      try { fs.mkdirSync(outDir, { recursive: true }); fs.writeFileSync(ps1, script, 'utf8') } catch { /* ignore */ }
+      const ps = runToFile(`powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File ${ps1}`, outFile)
+      const raw = String(ps.text ?? '').trim()
+      if (ps.error === null && /^\d+$/.test(raw)) return Number(raw)
+
+      // 方式二：quser（不需要编译；分钟级）
+      const q = runToFile('quser.exe', outFile)
+      if (q.error === null) {
+        const idle = parseQuser(q.text)
+        if (idle !== null) return idle
+      }
+      return null
+    }
+
     return () => {
-      let v = null
-      try { v = probeOnce() } catch { v = null }
-      if (v !== null) {
-        lastGood = { idle: v, at: nowMs() }
-        return v
-      }
-      // 失败重试一次（PowerShell 偶尔超时/EPERM）
-      try { v = probeOnce() } catch { v = null }
-      if (v !== null) {
-        lastGood = { idle: v, at: nowMs() }
-        return v
-      }
-      // 仍失败：90 秒内用最近成功值 + 时间差推平，避免"偶尔读不到"把判定打回离开
-      if (lastGood && nowMs() - lastGood.at <= 90_000) {
-        return lastGood.idle + (nowMs() - lastGood.at)
-      }
+      let v = probeOnce()
+      if (v !== null) { lastGood = { idle: v, at: nowMs() }; return v }
+      v = probeOnce()
+      if (v !== null) { lastGood = { idle: v, at: nowMs() }; return v }
+      if (lastGood && nowMs() - lastGood.at <= 90_000) return lastGood.idle + (nowMs() - lastGood.at)
       return null
     }
   } catch {
@@ -210,4 +219,36 @@ export function detectIdleProbe() {
 /** 兼容旧调用：只要探针函数。 */
 export function defaultIdleProbe() {
   return detectIdleProbe().probe
+}
+
+/**
+ * 探针诊断：把"为什么拿不到空闲"逐条打出来，供 /mode 显示。
+ * 不改变判定逻辑，只做取证。
+ */
+export function probeDiagnostics() {
+  const out = []
+  try {
+    out.push(`electron=${process.versions?.electron ?? '无'}；平台=${process.platform}`)
+  } catch { out.push('electron=读取失败') }
+
+  let cp = null
+  try { cp = createRequire(import.meta.url)('node:child_process') } catch { cp = null }
+  if (!cp) { out.push('child_process=不可用'); return out }
+
+  const tryRun = (label, file, args, opts) => {
+    try {
+      const r = cp.spawnSync(file, args, { encoding: 'utf8', timeout: 5000, windowsHide: true, ...opts })
+      const err = r.error ? String(r.error.code ?? r.error.message) : 'none'
+      const so = String(r.stdout ?? '').trim().slice(0, 40)
+      out.push(`${label}: error=${err} status=${r.status} stdout=${JSON.stringify(so)}`)
+    } catch (e) {
+      out.push(`${label}: 抛异常 ${String(e?.code ?? e?.message).slice(0, 60)}`)
+    }
+  }
+
+  tryRun('echo(pipe)', 'cmd.exe', ['/c', 'echo ok'])
+  tryRun('echo(ignore)', 'cmd.exe', ['/c', 'echo ok'], { stdio: 'ignore' })
+  tryRun('powershell', 'powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', 'echo ok'])
+  tryRun('quser', 'quser.exe', [])
+  return out
 }
