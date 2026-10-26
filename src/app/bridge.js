@@ -13,7 +13,7 @@ import { classify, findToolArgs } from '../core/label.js'
 import { approvalEvent, questionEvent, isEvent } from '../core/events.js'
 import { Audit } from './audit.js'
 import { listStoredSessions, humanAge, defaultSessionsRoot, listKnownWorkspaces } from '../core/sessions.js'
-import { Presence, PRESENCE, electronIdleProbe } from '../core/presence.js'
+import { Presence, PRESENCE, defaultIdleProbe } from '../core/presence.js'
 
 /**
  * 一张票 → 审批结局。批准/yes 都算允许；其余算拒绝。
@@ -177,7 +177,7 @@ export class Bridge {
     this.sayReplyChars = sayReplyChars
     // 在场判定：只有空闲一维；探针可由测试注入（idleProbe）
     this.presence = new Presence({
-      probe: idleProbe ?? (electronIdleProbe() ?? (() => null)),
+      probe: idleProbe ?? (defaultIdleProbe() ?? (() => null)),
       now: () => this.now(),
       idleThresholdMs: presenceIdleMs,
       confirmSamples: 2,
