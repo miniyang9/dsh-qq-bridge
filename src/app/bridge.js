@@ -15,6 +15,7 @@ import { Audit } from './audit.js'
 import { BridgeLog, defaultLogPath } from './log.js'
 import { listStoredSessions, humanAge, defaultSessionsRoot, listKnownWorkspaces } from '../core/sessions.js'
 import { Presence, PRESENCE, detectIdleProbe, probeDiagnostics } from '../core/presence.js'
+import { resolveStoredTarget } from '../core/resolve.js'
 
 /**
  * 一张票 → 审批结局。批准/yes 都算允许；其余算拒绝。
@@ -717,16 +718,8 @@ export class Bridge {
     // B8：/list 会隐藏咨询会话，序号解析必须用同一份列表，否则 /use 1 会绑到咨询会话
     const hidden = new Set(this.state.consults ?? [])
     const stored = (await listStoredSessions(this.sessionsRoot, this.now())).filter((x) => !hidden.has(x.id))
-    if (/^\d+$/.test(String(idArg))) {
-      const picked = stored[Number(idArg) - 1]
-      return picked ? { id: picked.id, cwd: picked.cwd, title: picked.title } : null
-    }
-    const key = String(idArg).replace(/^session-/, '').toLowerCase()
-    const found = stored.find((x) => {
-      const full = String(x.id).toLowerCase()
-      return full === key || full.replace(/^session-/, '').startsWith(key)
-    })
-    if (found) return { id: found.id, cwd: found.cwd, title: found.title }
+    const byStore = resolveStoredTarget(stored, idArg, shortOf)
+    if (byStore !== null) return byStore
     // B3：待答点 id（wp-N）绝不能被当成会话 id（卡片的 /why 提示会误导）
     if (/^wp-\d+$/i.test(String(idArg))) return null
     // 其它未入库的 token 仍按"可能是刚建的会话"处理（B5：新建会话要能立刻 /why）

@@ -70,7 +70,7 @@ node test/s2-transport.test.mjs        # 单套
 node tools/audit-docs.mjs              # 文档与实现一致性
 ```
 
-测试共 60 套（基线取证见 `docs/build/baseline.md`），覆盖接缝、状态机、去重、审计、双通道竞态、接口词表等；设计过程见 `docs/build/review-r1…r9.md`（九轮独立评审记录）。
+测试共 61 套（基线取证见 `docs/build/baseline.md`），覆盖接缝、状态机、去重、审计、双通道竞态、接口词表等；设计过程见 `docs/build/review-r1…r9.md`（九轮独立评审记录）。
 
 ## 已知限制
 
